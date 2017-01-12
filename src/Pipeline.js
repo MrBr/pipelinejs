@@ -5,16 +5,15 @@ export default class Pipeline {
   /**
    *
    * @param main {function}
-   *  Default fitting doesn't do nothing it is just
-   *  here to enable other pipes to connect
+   *  Main pipeline process
    * @param parent {Pipeline}
    *  Default manifold handle all "unhandled - not properly connected or root?" pipes
    */
-  constructor(main = fitting, parent = manifold) {
+  constructor(main, parent = manifold) {
     // TODO - handle unexpected main and parent
     this.pipes = { // Pipelines?
       supply: [],
-      sink: [main],
+      sink: main ? [main] : [], // TODO - reconsider main
       drain: [],
       last: null, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
@@ -132,4 +131,3 @@ export function replicatePipe(pipe) {
 
 export const isPipeline = ref => ref instanceof Pipeline;
 export const manifold = new Pipeline(); // TODO - confirm name
-export const fitting = (stream) => undefined;
