@@ -74,28 +74,31 @@ export default class Pipeline {
   }
 
   /**
+   * Some kind of shallow copy.
    * Create new Pipeline with all same pipes same references but different top fitting?.
    * Look at it like pipeline got another drain which is returned to work with.
    * Changing provided pipeline will not affect original from which it split, but changing original
    * pipeline pipes will affect new one.
    *
    * TODO - what happens when pipeline is removed?
-   * Shallow copy?
-   * Should really new drain be returned?
    */
-  split() { // TODO - confirm name
-    // TODO -
+  branch() {
+    return new Pipeline().supply(this);
   }
 
   /**
-   * Clone || duplicate || copy
+   * Deep copy.
    * Create new Pipeline that recreates all pipes as current. All references are changed, there is
    * no relation between new Pipeline and current.
-   *
-   * Deep copy?
    */
-  copy() { // TODO - confirm name
-    // TODO - implement copy functionality
+  replicate() {
+    const pipeline = new Pipeline();
+
+    const pipes = replicatePipes(this.pipes);
+    // TODO - Rethink pipes inheritance
+    pipeline.pipes = pipes;
+
+    return pipeline;
   }
 
   pipe(stream = {}, close) {
@@ -108,6 +111,23 @@ export default class Pipeline {
     // TODO - rethink Stream concept; it is not needed? wrongly named?
     return new Stream(pipelineSnapshot, close).pipe(stream);
   }
+}
+
+export function replicatePipes(pipes) {
+  return _.reduce(pipes, (pipesCopy, pipe, name) => {
+    pipesCopy[name] = replicatePipe(pipe);
+    return pipesCopy;
+  }, {});
+}
+
+export function replicatePipe(pipe) {
+  if (_.isArray(pipe)) {
+    return pipe.map(replicatePipes)
+  } else if (isPipeline(pipe)) {
+    return pipe.replicate();
+  }
+  // TODO - handle unwanted cases
+  return pipe;
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;
