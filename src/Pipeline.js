@@ -7,9 +7,8 @@ export default class Pipeline {
    * @param main {function}
    *  Main pipeline process
    * @param parent {Pipeline}
-   *  Default manifold handle all "unhandled - not properly connected or root?" pipes
    */
-  constructor(main, parent = manifold) {
+  constructor(main, parent) {
     // TODO - handle unexpected main and parent
     this.pipes = { // Pipelines?
       supply: [],
@@ -67,8 +66,8 @@ export default class Pipeline {
     return this.pipes.last;
   }
 
-  return() {
-    // TODO - handle no parent or manifold parent (it self)
+  return() { // TODO - confirm name; parent?
+    // TODO - handle no parent
     return this.pipes.parent;
   }
 
@@ -78,20 +77,23 @@ export default class Pipeline {
    * Look at it like pipeline got another drain which is returned to work with.
    * Changing provided pipeline will not affect original from which it split, but changing original
    * pipeline pipes will affect new one.
-   *
+   * When branching you can connect pipeline to another parent.
    * TODO - what happens when pipeline is removed?
+   * @param parent {Pipeline}
    */
-  branch() {
-    return new Pipeline().supply(this);
+  branch(parent) {
+    return new Pipeline(undefined, parent).supply(this);
   }
 
   /**
    * Deep copy.
    * Create new Pipeline that recreates all pipes as current. All references are changed, there is
    * no relation between new Pipeline and current.
+   * When replicating you can connect pipeline to another parent.
+   * @param parent {Pipeline}
    */
-  replicate() {
-    const pipeline = new Pipeline();
+  replicate(parent) {
+    const pipeline = new Pipeline(undefined, parent);
 
     const pipes = replicatePipes(this.pipes);
     // TODO - Rethink pipes inheritance
@@ -100,15 +102,28 @@ export default class Pipeline {
     return pipeline;
   }
 
-  pipe(stream = {}, close) {
+  serialize() {
     const { supply, sink, drain } = this.pipes;
+    return [...supply, ...sink, ...drain];
+  }
 
-    // New array must be created to brake reference with Pipeline pipes.
-    // Pipeline pipes may be changed while piping but it may not affect already started piping.
-    const pipelineSnapshot = [...supply, ...sink, ...drain];
-
-    // TODO - rethink Stream concept; it is not needed? wrongly named?
-    return new Stream(pipelineSnapshot, close).pipe(stream);
+  /**
+   *
+   * @param stream
+   * @param close
+   * @returns {Promise}
+   */
+  pipe(stream = {}, close) {
+    return new Promise((resolve, reject) => {
+      // TODO - rethink Stream concept; it is not needed? wrongly named?
+      new Stream(this.serialize(), close)
+        .pipe(stream)
+        .then(resolve)
+        // Parent must be taken separately for each piping
+        // because it may be dynamically changed?
+        // TODO - make parent static?
+        .catch(this.return() ? reject : resolve);
+    });
   }
 }
 
@@ -130,4 +145,3 @@ export function replicatePipe(pipe) {
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;
-export const manifold = new Pipeline(); // TODO - confirm name

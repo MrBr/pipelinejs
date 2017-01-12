@@ -10,9 +10,7 @@ export default class Stream {
    */
   constructor(pipelines, close) {
     this.pipelines = pipelines; // Does not change for the stream
-    this.flows = true;
     this.parentClose = close;
-    this.close = this.close.bind(this);
   }
 
   /**
@@ -20,14 +18,9 @@ export default class Stream {
    * If coupled with parent stream, parent stream will also be closed.
    */
   close() {
-    this.flows = false;
     if (this.parentClose) {
       this.parentClose();
     }
-  }
-
-  isClosed() {
-    return !this.flows;
   }
 
   resolvePipe(pipeline) { // TODO - better name
@@ -44,16 +37,16 @@ export default class Stream {
   pipe(stream, index = 0) {
     return new Promise((resolve, reject) => {
       const pipeline = this.pipelines[index];
+      const closePipe = closedStream => {
+        this.close();
+        reject(closedStream);
+      };
       // Only when stream is piped through nextPipe resolve current.
       // This creates recursive mechanism resolving all from bottom to top.
       // Final effect is pipes serialization.
-      const nextPipe = (nextStream = stream)=> {
-        if (this.isClosed()) {
-          this.close();
-          return;
-        }
-        this.pipe(nextStream, index + 1).then(resolve);
-      };
+      const nextPipe = (nextStream = stream)=> this.pipe(nextStream, index + 1)
+        .then(resolve)
+        .catch(closePipe);
 
       // Is Pipe
       const pipe = this.resolvePipe(pipeline);
@@ -63,7 +56,7 @@ export default class Stream {
         resolve(stream);
       }
 
-      const newStream = pipe(stream, this.close);
+      const newStream = pipe(stream, closePipe);
 
       if (_.isUndefined(newStream)) { // TODO - newStream === stream?
         // Main pipe that is fitting
@@ -73,7 +66,7 @@ export default class Stream {
       } else if (newStream instanceof Promise) {
         // Main pipe that has async behavior
         // TODO - Catch error (reject)
-        newStream.then(nextPipe);
+        newStream.then(nextPipe).catch(closePipe);
       } else if (_.isPlainObject(newStream)) {
         // Main pipe that has synchronous behavior
         nextPipe(newStream);
