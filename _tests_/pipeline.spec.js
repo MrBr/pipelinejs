@@ -1,5 +1,8 @@
-import { assert } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import { Pipeline } from '../src';
+
+chai.use(chaiAsPromised);
 
 
 // TODO
@@ -42,31 +45,16 @@ function logStream(stream) {
 
 describe('Pipeline', () => {
   describe('pipe', () => {
-    it('executes pipes in proper order', (done) => {
-      // TODO - needs more asserts
-      const addXYv0 = new Pipeline(addXY);
+    it('executes pipes in proper order', () => {
+      // TODO - needs more asserts to confirm that it works? what tests damn it -_-
+      const addXYv0 = new Pipeline();
       addXYv0
-        .supply(supplyX)
-        .supply(supplyY)
-        // .sink(logStream)
-        .sink(double)
-        // .drain(logStream)
-        .drain(function (stream) {
-          assert.equal(12, stream.data);
-          done();
-        });
-
-      // Same thing as above
-      const addXYv1 = new Pipeline();
-      addXYv1
         .supply(supplyX)
         .supply(supplyY)
         .sink(addXY)
-        .sink(double)
-        .drain(logStream);
+        .sink(double);
 
-      addXYv0
-        .pipe({})
+      return expect(addXYv0.pipe({})).to.eventually.deep.equal({ x: 2, y: 4, data: 12 });
         // .then(console.log);
         // .pipe(); // No stream means all data is injected?
 
@@ -75,21 +63,55 @@ describe('Pipeline', () => {
     });
   });
   describe('take', () => {
-      it('provides proper Pipeline', (done) => {
+      it('provides proper Pipeline', () => {
         const addXYv0 = new Pipeline(addXY);
         const supplyXPipeline = addXYv0
           .supply(supplyX)
           .take();
 
-        assert.isOk(addXYv0.pipes.supply[0] === supplyXPipeline);
+        expect(addXYv0.pipes.supply[0] === supplyXPipeline.pipes.sink[0]).to.be.ok;
 
-        supplyXPipeline
-          .drain(function (stream) {
-            assert.equal(2, stream.x);
-            done();
-          })
-          .pipe();
+        return expect(supplyXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
+
       });
+  });
+  describe('close', () => {
+    it('closes serial pipe properly', () => {
+      const addXYv0 = new Pipeline();
+      addXYv0
+        .supply(supplyX)
+        .supply((stream, close) => (close(stream)))
+        .sink(addXY)
+        .sink(double);
+
+      return expect(addXYv0.pipe()).to.eventually.deep.equal({ x: 2 });
+    });
+    it('closes parallel pipe properly', () => {
+      const pipeline = new Pipeline();
+      const pipeSetX2 = new Pipeline()
+        .supply((stream, close) => {
+          !stream.setX && close();
+        })
+        .sink(() => ({ x: 2 }));
+      const pipeSetY3 = new Pipeline()
+        .supply((stream, close) => {
+          !stream.setY && close();
+        })
+        .sink(() => ({ y: 3 }));
+
+      pipeline.sink(pipeSetX2);
+      pipeline.sink(pipeSetY3);
+
+      const stream1 = pipeline
+        .pipe({ setX: true });
+      const stream2 = pipeline
+          .pipe({ setY: true });
+
+      return Promise.all([
+        expect(stream1).to.eventually.deep.equal({ x: 2 }),
+        expect(stream2).to.eventually.deep.equal({ y: 3 })
+      ]);
+    });
   });
   describe('clone', () => {
     // Example of saving partial functionality // TODO - copy -> create new ref without modifying original
