@@ -172,4 +172,20 @@ describe('Pipeline', () => {
     //   .sink(double)
     //   .take();
   });
+  describe('disconnect', () => {
+    it('makes disconnected pipe parallel', () => {
+      const drain = sinon.spy(() => {});
+
+      const pipeline = new Pipeline();
+      pipeline
+        .supply((stream, close) => close()).disconnect()
+        .drain(console.log)
+        .drain(drain);
+
+      return pipeline
+        .pipe({})
+        .then(() => expect(drain.callCount).to.be.equal(1))
+        .catch(console.log);
+    });
+  });
 });

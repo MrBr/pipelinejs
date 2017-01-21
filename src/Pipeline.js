@@ -32,7 +32,8 @@ export default class Pipeline {
    */
   disconnect() {
     const { type, pipe } = this.pipes.last;
-    this.replaceLastPipeOfType(pipe, type);
+    const parallelPipe = isPipeline(pipe) ? pipe : createParallelPipe(pipe);
+    this.replaceLastPipeOfType(parallelPipe, type);
     return this;
   }
 
@@ -165,6 +166,13 @@ export default class Pipeline {
         .then(resolve)
         .catch(closePipeline);
     });
+  }
+}
+
+function createParallelPipe(pipe) {
+  return function (stream) {
+    // Fake close, calling close doesn't affect original stream when in parallel.
+    pipe(stream, () => {});
   }
 }
 
