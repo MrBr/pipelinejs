@@ -15,17 +15,46 @@ export default class Pipeline {
       sink: [],
       drain: [],
       close: [],
-      last: null, // TODO - confirm that only last is needed, can be pipes list
+      last: { pipe: null, type: undefined }, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
       parent,
     };
   }
 
+  replaceLastPipeOfType(newPipe, type) {
+    const pipesCountForType = this.pipes[type].length;
+    this.pipes[type][pipesCountForType - 1] = newPipe;
+    return this;
+  }
+
+  /**
+   * Make last pipe parallel
+   */
+  disconnect() {
+    const { type, pipe } = this.pipes.last;
+    this.replaceLastPipeOfType(pipe, type);
+    return this;
+  }
+
+  /**
+   * Add serial pipe or pipeline.
+   * @param pipe
+   * @param type
+   * @returns {Pipeline}
+   */
   connect(pipe, type) {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
     //  further more, main pipes can be sorted?
-    this.pipes[type].push(pipe);
-    this.pipes.last = pipe;
+
+    // Pipe (function) behavior is such that it is serial by default, Pipeline on the other hand
+    // must be called serially. This is result of keeping Pipelines references independent
+    // or static if you like.
+    const pipeline = isPipeline(pipe) ? createSerialPipeFromPipeline(pipe) : pipe;
+    this.pipes[type].push(pipeline);
+    this.pipes.last = {
+      pipe,
+      type
+    };
     return this;
   }
 
@@ -62,7 +91,7 @@ export default class Pipeline {
 
   take() {
     // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
-    const pipe = this.pipes.last;
+    const pipe = this.pipes.last.pipe;
     const pipeline = isPipeline(pipe) ? pipe : new Pipeline(this).sink(pipe);
 
     // TODO - rethink disconnect binding
@@ -134,6 +163,14 @@ export default class Pipeline {
         // because it may be dynamically changed?
         // TODO - should parent be static?
         .catch(this.return() ? closePipeline : resolve);
+    });
+  }
+}
+
+function createSerialPipeFromPipeline(pipeline) {
+  return function (stream) {
+    return new Promise((resolve, reject) => {
+      pipeline.pipe(stream, true).then(resolve).catch(reject);
     });
   }
 }
