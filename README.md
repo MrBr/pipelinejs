@@ -21,6 +21,10 @@ Pipes can be connected to the Pipeline in serial or parallel. Depending on what 
 
 Adding pipe to Pipeline will create new Pipeline which can be taken shaped separately.
 
+## Pipeline.close
+
+Used only with serial pipes, where closedStream is kept in pipes.
+
 ### Thinking the Pipeline way. 
 
 Everything can be anything and everything can have something before or after core process or be core process it self.
@@ -37,3 +41,7 @@ There are still few things to be specified more precisely, primary determining i
 Naming is to be improved, depending to much on a real piping systems.
 
 Stream interface (convention). Should it always be an object or primitive values ar to be accepted as well?
+
+Closing pipe can be done with promise and with close callback?
+
+Find out is more common case that Pipelines (and pipes) are connected in serial or parallel.
