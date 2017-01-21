@@ -1,9 +1,9 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
 import { Pipeline } from '../src';
 
 chai.use(chaiAsPromised);
-
 
 // TODO
 //  Working with immutability? Creating new stream reference on every process?
@@ -60,6 +60,45 @@ describe('Pipeline', () => {
 
       // Stream enhancer - format stream - Stream interface? I.E. Data stream indicates that data is focus of stream... meh
       // (stream, oldStream) => _.isPlainObject(stream) ? stream : { data: stream, ...oldStream }
+    });
+    describe('lifecycle', () => {
+      it('async pipe rejects only once', () => {
+        // Note: Had case when it was rejected twice
+        const drain = sinon.spy(() => {});
+        const supplyPipeline = new Pipeline();
+        supplyPipeline.supply(function () {
+          return new Promise(function (resolve, reject) {
+            reject({});
+          });
+        });
+
+        const pipeline = new Pipeline();
+        pipeline
+          .supply(supplyPipeline)
+          .drain(drain);
+
+        return pipeline
+          .pipe()
+          .then(() => expect(drain.callCount).to.be.equal(1));
+      });
+      it('async pipe resolves only once', () => {
+        const drain = sinon.spy(() => {});
+        const supplyPipeline = new Pipeline();
+        supplyPipeline.supply(function () {
+          return new Promise(function (resolve, reject) {
+            resolve({});
+          });
+        });
+
+        const pipeline = new Pipeline();
+        pipeline
+          .supply(supplyPipeline)
+          .drain(drain);
+
+        return pipeline
+          .pipe()
+          .then(() => expect(drain.callCount).to.be.equal(1));
+      });
     });
   });
   describe('take', () => {

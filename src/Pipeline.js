@@ -116,10 +116,10 @@ export default class Pipeline {
    * @param close
    * @returns {Promise}
    */
-  pipe(stream = {}, close) {
+  pipe(stream = {}) {
     return new Promise((resolve, reject) => {
       // TODO - rethink Stream concept; it is not needed? wrongly named?
-      flow(stream, this.serialize(), close)
+      flow(stream, this.serialize())
         .then(resolve)
         // Parent must be taken separately for each piping
         // because it may be dynamically changed?
