@@ -145,24 +145,24 @@ export default class Pipeline {
   }
 
   /**
-   *
+   * Pipeline is serial if it has parent and whenever it is connected to another pipeline.
+   * It can explicitly be disconnected (connected in parallel) for certain fitting (connection).
    * @param stream
    * @param close
    * @returns {Promise}
    */
-  pipe(stream = {}) {
+  pipe(stream = {}, serial = this.return()) {
     return new Promise((resolve, reject) => {
       const closePipeline = closedStream => {
         // TODO - closing can not be stopped (closed again), improve this to prevent that case?
-        flow(closedStream, this.pipes.close).then(reject).catch(reject);
+        // Serial pipes can close current flow and before closing
+        // additional actions on stream can be done with closing pipes.
+        serial && flow(closedStream, this.pipes.close).then(reject).catch(reject);
       };
       // TODO - rethink Stream concept; it is not needed? wrongly named?
       flow(stream, this.serialize())
         .then(resolve)
-        // Parent must be taken separately for each piping
-        // because it may be dynamically changed?
-        // TODO - should parent be static?
-        .catch(this.return() ? closePipeline : resolve);
+        .catch(closePipeline);
     });
   }
 }
