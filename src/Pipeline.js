@@ -14,6 +14,7 @@ export default class Pipeline {
       supply: [],
       sink: [],
       drain: [],
+      close: [],
       last: null, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
       parent,
@@ -53,6 +54,10 @@ export default class Pipeline {
    */
   drain(pipe) {
     return this.connect(pipe, 'drain');
+  }
+
+  close(pipe) {
+    return this.connect(pipe, 'close');
   }
 
   take() {
@@ -118,13 +123,17 @@ export default class Pipeline {
    */
   pipe(stream = {}) {
     return new Promise((resolve, reject) => {
+      const closePipeline = closedStream => {
+        // TODO - closing can not be stopped (closed again), improve this to prevent that case?
+        flow(closedStream, this.pipes.close).then(reject).catch(reject);
+      };
       // TODO - rethink Stream concept; it is not needed? wrongly named?
       flow(stream, this.serialize())
         .then(resolve)
         // Parent must be taken separately for each piping
         // because it may be dynamically changed?
         // TODO - should parent be static?
-        .catch(this.return() ? reject : resolve);
+        .catch(this.return() ? closePipeline : resolve);
     });
   }
 }
