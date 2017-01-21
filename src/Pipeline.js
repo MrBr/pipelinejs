@@ -59,7 +59,8 @@ export default class Pipeline {
   }
 
   /**
-   * Before the main drain, used to filter or extend stream.
+   * Before the main drain, used to filter out unwanted streams
+   * or supply stream with data.
    * @param pipe
    * @returns {*}
    */
@@ -68,7 +69,7 @@ export default class Pipeline {
   }
 
   /**
-   * Immediately after the main drain, used to process stream.
+   * Used to process the stream.
    * @param pipe
    * @returns {*}
    */
@@ -133,7 +134,7 @@ export default class Pipeline {
     const pipeline = new Pipeline(parent);
 
     const pipes = replicatePipes(this.pipes);
-    // TODO - Rethink pipes inheritance
+    // TODO - Rethink pipes inheritance (this particular set bellow)
     pipeline.pipes = pipes;
 
     return pipeline;
