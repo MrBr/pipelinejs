@@ -11,6 +11,7 @@
     "babel-preset-stage-0": "^6.3.13",
     "babel-register": "^6.18.0",
     "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
     "mocha": "^2.5.3",
     "nock": "^8.0.0",
     "sinon": "^1.17.4"
