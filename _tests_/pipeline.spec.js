@@ -1,11 +1,12 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
-import { Pipeline } from '../src';
+import { Pipeline, inverse } from '../src';
 
 chai.use(chaiAsPromised);
 
 // TODO
+//  Separate Pipeline and Stream tests
 //  Working with immutability? Creating new stream reference on every process?
 //  Stream is required object?
 //  Bringing peace to stream "subject" property? Property that is focus of process
@@ -39,10 +40,6 @@ function double(stream) {
   };
 }
 
-function logStream(stream) {
-  console.log(stream);
-}
-
 describe('Pipeline', () => {
   describe('pipe', () => {
     it('executes pipes in proper order', () => {
@@ -65,6 +62,7 @@ describe('Pipeline', () => {
       it('async pipe rejects only once', () => {
         // Note: Had case when it was rejected twice
         const drain = sinon.spy(() => {});
+
         const supplyPipeline = new Pipeline();
         supplyPipeline.supply(function () {
           return new Promise(function (resolve, reject) {
@@ -74,7 +72,7 @@ describe('Pipeline', () => {
 
         const pipeline = new Pipeline();
         pipeline
-          .supply(supplyPipeline)
+          .supply(inverse(supplyPipeline))
           .drain(drain);
 
         return pipeline
@@ -111,19 +109,32 @@ describe('Pipeline', () => {
         expect(addXYv0.pipes.supply[0] === supplyXPipeline.pipes.sink[0]).to.be.ok;
 
         return expect(supplyXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
-
       });
   });
   describe('close', () => {
+    it('calls closing pipes when closing', () => {
+      const closePipe1 = (stream) => ({ ...stream, close1: true });
+      const closePipe2 = (stream) => ({ ...stream, close2: true });
+
+      const pipeline = new Pipeline();
+      pipeline
+        .supply((stream, close) => close())
+        .close(closePipe1)
+        .close(closePipe2);
+
+      const clodedPipeling = new Pipeline().supply(inverse(pipeline));
+
+      return expect(clodedPipeling.pipe({})).to.eventually.be.deep.equal({ close1: true, close2: true });
+    });
     it('closes serial pipe properly', () => {
       const addXYv0 = new Pipeline();
       addXYv0
         .supply(supplyX)
-        .supply((stream, close) => (close(stream)))
+        .supply((stream, close) => close(stream))
         .sink(addXY)
         .sink(double);
 
-      return expect(addXYv0.pipe()).to.eventually.deep.equal({ x: 2 });
+      return expect(inverse(addXYv0)({})).to.eventually.deep.equal({ x: 2 });
     });
     it('closes parallel pipe properly', () => {
       const pipeline = new Pipeline();
@@ -138,8 +149,8 @@ describe('Pipeline', () => {
         })
         .sink(() => ({ y: 3 }));
 
-      pipeline.sink(pipeSetX2);
-      pipeline.sink(pipeSetY3);
+      pipeline.sink(pipeSetX2).disconnect();
+      pipeline.sink(pipeSetY3).disconnect();
 
       const stream1 = pipeline
         .pipe({ setX: true });
