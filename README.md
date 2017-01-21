@@ -28,3 +28,12 @@ Everything can be anything and everything can have something before or after cor
 Your application snapshot or topology is static, it always is, pipeline enables you to create that topology very easy and clear.
 
 ## Example - please refer to test to see example
+
+
+## Roadmap, concerns
+
+There are still few things to be specified more precisely, primary determining if some implicit (conventional) things should be kept that way or changed to be explicit.
+
+Naming is to be improved, depending to much on a real piping systems.
+
+Stream interface (convention). Should it always be an object or primitive values ar to be accepted as well?
