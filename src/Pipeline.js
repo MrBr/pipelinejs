@@ -193,3 +193,18 @@ export function replicatePipe(pipe) {
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;
+
+/**
+ * Inverse always call pipe as serial.
+ * It doesn't have sense to use inverse in case something is connected in parallel.
+ * Parallel pipes doesn't affect original stream.
+ * @param pipe
+ * @returns {Function}
+ */
+export const inverse = pipe => stream => new Promise((resolve, reject) => {
+    const promise = isPipeline(pipe) ? pipe.pipe(stream, true) : pipe(stream);
+    promise
+      .then(reject)
+      .catch(resolve)
+  }
+);
