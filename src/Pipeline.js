@@ -8,11 +8,11 @@ export default class Pipeline {
    *  Main pipeline process
    * @param parent {Pipeline}
    */
-  constructor(main, parent) {
+  constructor(parent) {
     // TODO - handle unexpected main and parent
     this.pipes = { // Pipelines?
       supply: [],
-      sink: main ? [main] : [], // TODO - reconsider main
+      sink: [],
       drain: [],
       last: null, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
@@ -21,16 +21,10 @@ export default class Pipeline {
   }
 
   connect(pipe, type) {
-    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(pipe, this);
-    pipeline.disconnect = () => {
-      // Removing drain does not effect this.pipes.last because
-      // last is used only to create snapshot
-      _.remove(this.pipes[type], pipeline);
-    };
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
     //  further more, main pipes can be sorted?
-    this.pipes[type].push(pipeline);
-    this.pipes.last = pipeline;
+    this.pipes[type].push(pipe);
+    this.pipes.last = pipe;
     return this;
   }
 
@@ -63,7 +57,16 @@ export default class Pipeline {
 
   take() {
     // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
-    return this.pipes.last;
+    const pipe = this.pipes.last;
+    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(this).sink(pipe);
+
+    // TODO - rethink disconnect binding
+    pipeline.disconnect = () => {
+      // Removing drain does not effect this.pipes.last because
+      // last is used only to create snapshot
+      _.remove(this.pipes[type], pipeline);
+    };
+    return pipeline;
   }
 
   return() { // TODO - confirm name; parent?
@@ -82,7 +85,7 @@ export default class Pipeline {
    * @param parent {Pipeline}
    */
   branch(parent) {
-    return new Pipeline(undefined, parent).supply(this);
+    return new Pipeline(parent).supply(this);
   }
 
   /**
@@ -93,7 +96,7 @@ export default class Pipeline {
    * @param parent {Pipeline}
    */
   replicate(parent) {
-    const pipeline = new Pipeline(undefined, parent);
+    const pipeline = new Pipeline(parent);
 
     const pipes = replicatePipes(this.pipes);
     // TODO - Rethink pipes inheritance
@@ -120,7 +123,7 @@ export default class Pipeline {
         .then(resolve)
         // Parent must be taken separately for each piping
         // because it may be dynamically changed?
-        // TODO - make parent static?
+        // TODO - should parent be static?
         .catch(this.return() ? reject : resolve);
     });
   }
