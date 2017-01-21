@@ -15,8 +15,16 @@ function resolvePipe(pipeline) { // TODO - better name
 export function flow(stream, pipelines, close, index = 0) { // TODO - rename (and this file)
   return new Promise((resolve, reject) => {
     const pipeline = pipelines[index];
-    const closePipe = closedStream => {
-      close && close();
+    let closed = false;
+    const closePipe = (closedStream = stream) => {
+      closed = true;
+      if(isPipeline(pipeline)) {
+        // Closing parallel pipeline doesn't affect stream propagation
+        nextPipe(closedStream);
+        return;
+      }
+      // Closing serial pipeline, stop stream propagation
+      close && close(closedStream);
       reject(closedStream);
     };
     // Only when stream is piped through nextPipe resolve current.
@@ -34,9 +42,17 @@ export function flow(stream, pipelines, close, index = 0) { // TODO - rename (an
     if (!pipe) {
       // No more pipelines or pipes, resolve
       resolve(stream);
+      return;
     }
 
     const newStream = pipe(stream, closePipe);
+
+    if (closed) {
+      // Closed with closePipe function.
+      // It is a bit hidden relation but it simplifies closing pattern.
+      // Removes need to return anything when closing.
+      return;
+    }
 
     if (_.isUndefined(newStream)) { // TODO - newStream === stream?
       // Main pipe that is fitting
@@ -51,9 +67,11 @@ export function flow(stream, pipelines, close, index = 0) { // TODO - rename (an
       // Main pipe that has synchronous behavior
       nextPipe(newStream);
     } else {
-      // TODO - waste?
-      // Error - nextStream must be undefined (parallel drain), plain object or promise
-      resolve(newStream);
+      // Error
+      //  nextStream must be undefined (parallel drain), plain object or promise
+      //  closing stream
+      console.error('Stream is not an object', newStream);
+      reject(newStream);
     }
   });
 }
