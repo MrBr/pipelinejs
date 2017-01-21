@@ -97,7 +97,7 @@ export default class Pipeline {
     const pipeline = isPipeline(pipe) ? pipe : new Pipeline(this).sink(pipe);
 
     // TODO - rethink disconnect binding
-    pipeline.disconnect = () => {
+    pipeline.remove = () => {
       // Removing drain does not effect this.pipes.last because
       // last is used only to create snapshot
       _.remove(this.pipes[type], pipeline);
