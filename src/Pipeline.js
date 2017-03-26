@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { flow } from './Stream';
+import pipe from './pipe';
 
 export default class Pipeline {
   /**
@@ -8,19 +8,27 @@ export default class Pipeline {
    *  Main pipeline process
    * @param parent {Pipeline}
    */
-  constructor(parent) {
+  constructor(parent = null) {
     // TODO - handle unexpected main and parent
     this.pipes = { // Pipelines?
       supply: [],
       sink: [],
       drain: [],
       close: [],
+      trap: [],
       last: { pipe: null, type: undefined }, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
       parent,
     };
   }
 
+  // TODO - this is not needed? wrong concept
+  /**
+   * Used for enhance
+   * @param newPipe
+   * @param type
+   * @returns {Pipeline}
+   */
   replaceLastPipeOfType(newPipe, type) {
     const pipesCountForType = this.pipes[type].length;
     this.pipes[type][pipesCountForType - 1] = newPipe;
@@ -28,12 +36,15 @@ export default class Pipeline {
   }
 
   /**
-   * Make last pipe parallel
+   *
+   * @param enhancer {function}
+   * @returns {Pipeline}
    */
-  disconnect() {
-    const { type, pipe } = this.pipes.last;
-    const parallelPipe = isPipeline(pipe) ? pipe : createParallelPipe(pipe);
-    this.replaceLastPipeOfType(parallelPipe, type);
+  enhance(enhancer) { // TODO - better name
+    const { type } = this.pipes.last;
+    const pipe = _.last(this.pipes[type]);
+    const enhancedPipe = enhancer(pipe);
+    this.replaceLastPipeOfType(enhancedPipe, type);
     return this;
   }
 
@@ -47,16 +58,20 @@ export default class Pipeline {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
     //  further more, main pipes can be sorted?
 
-    // Pipe (function) behavior is such that it is serial by default, Pipeline on the other hand
-    // must be called serially. This is result of keeping Pipelines references independent
-    // or static if you like.
-    const pipeline = isPipeline(pipe) ? createSerialPipeFromPipeline(pipe) : pipe;
-    this.pipes[type].push(pipeline);
+    this.pipes[type].push(pipe);
     this.pipes.last = {
       pipe,
       type
     };
     return this;
+  }
+
+  disconnect() {
+    
+  }
+
+  parent(parent) {
+    this.pipes.parent = parent;
   }
 
   /**
@@ -94,9 +109,16 @@ export default class Pipeline {
   take() {
     // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
     const pipe = this.pipes.last.pipe;
-    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(this).sink(pipe);
+    // TODO - if pipeline and in serial then serial wrapper is not needed anymore when taken
+    //  because pipeline is replicated with parent, meaning it is in serial
+    // TODO - is it better to always replicate pipeline?
+    // Lazy replicate reduces number of replicated Pipelines allowing them to behave static
+    // TODO - parallel pipelines shouldn't get parent! Add test for that case!
+    const pipeline = isPipeline(pipe) ? pipe.replicate() : new Pipeline(this).sink(pipe);
 
-    // TODO - rethink disconnect binding
+    pipeline.parent(this);
+
+    // TODO - rethink disconnect/remove binding
     pipeline.remove = () => {
       // Removing drain does not effect this.pipes.last because
       // last is used only to create snapshot
@@ -111,32 +133,15 @@ export default class Pipeline {
   }
 
   /**
-   * Some kind of shallow copy.
-   * Create new Pipeline with all same pipes same references but different top fitting?.
-   * Look at it like pipeline got another drain which is returned to work with.
-   * Changing provided pipeline will not affect original from which it split, but changing original
-   * pipeline pipes will affect new one.
-   * When branching you can connect pipeline to another parent.
-   * TODO - what happens when pipeline is removed?
-   * @param parent {Pipeline}
-   */
-  branch(parent) {
-    return new Pipeline(parent).supply(this);
-  }
-
-  /**
    * Deep copy.
    * Create new Pipeline that recreates all pipes as current. All references are changed, there is
    * no relation between new Pipeline and current.
-   * When replicating you can connect pipeline to another parent.
-   * @param parent {Pipeline}
    */
-  replicate(parent) {
-    const pipeline = new Pipeline(parent);
+  replicate() {
+    const pipeline = new Pipeline();
 
-    const pipes = replicatePipes(this.pipes);
     // TODO - Rethink pipes inheritance (this particular set bellow)
-    pipeline.pipes = pipes;
+    pipeline.pipes = replicatePipes(this.pipes);
 
     return pipeline;
   }
@@ -150,37 +155,40 @@ export default class Pipeline {
    * Pipeline is serial if it has parent and whenever it is connected to another pipeline.
    * It can explicitly be disconnected (connected in parallel) for certain fitting (connection).
    * @param stream
-   * @param close
    * @returns {Promise}
    */
-  pipe(stream = {}, serial = this.return()) {
-    return new Promise((resolve, reject) => {
+  pipe(stream = {}) {
+    const promise = new Promise((resolve, reject) => {
       const closePipeline = closedStream => {
         // TODO - closing can not be stopped (closed again), improve this to prevent that case?
-        // Serial pipes can close current flow and before closing
-        // additional actions on stream can be done with closing pipes.
-        serial && flow(closedStream, this.pipes.close).then(reject).catch(reject);
+        // TODO - is closing only important for serial pipes?
+        pipe(closedStream, this.pipes.close).then(reject).catch(reject);
       };
-      // TODO - rethink Stream concept; it is not needed? wrongly named?
-      flow(stream, this.serialize())
+
+      const pipes = this.serialize();
+      pipe(stream, pipes)
         .then(resolve)
         .catch(closePipeline);
     });
+
+    const trap = this.pipes.trap;
+    const trappedPromise = trap.reduce((prevPipe, nextPipe) => nextPipe(prevPipe)(stream), promise);
+
+    // Place to catch possible real errors
+    // Primary added to remove unhandled promise warning.
+    // Rejection in Pipeline does not necessary indicate error. It can just be early return.
+    trappedPromise.catch(console.log);
+
+    return trappedPromise;
   }
 }
 
-function createParallelPipe(pipe) {
-  return function (stream) {
-    // Fake close, calling close doesn't affect original stream when in parallel.
-    pipe(stream, () => {});
-  }
-}
+// Fake close, calling close doesn't affect original stream when in parallel.
+export const parallel = pipe => stream => stream;
 
-function createSerialPipeFromPipeline(pipeline) {
+export function createSerialPipeFromPipeline(pipeline) {
   return function (stream) {
-    return new Promise((resolve, reject) => {
-      pipeline.pipe(stream, true).then(resolve).catch(reject);
-    });
+    return new Promise((resolve, reject) => pipe(stream, pipeline).then(resolve).catch(reject));
   }
 }
 
@@ -193,7 +201,7 @@ export function replicatePipes(pipes) {
 
 export function replicatePipe(pipe) {
   if (_.isArray(pipe)) {
-    return pipe.map(replicatePipes)
+    return pipe.map(replicatePipe)
   } else if (isPipeline(pipe)) {
     return pipe.replicate();
   }
@@ -210,10 +218,7 @@ export const isPipeline = ref => ref instanceof Pipeline;
  * @param pipe
  * @returns {Function}
  */
-export const inverse = pipe => stream => new Promise((resolve, reject) => {
-    const promise = isPipeline(pipe) ? pipe.pipe(stream, true) : pipe(stream);
-    promise
-      .then(reject)
-      .catch(resolve)
-  }
-);
+export const inverse = nextPipe => stream =>
+  new Promise((resolve, reject) => {
+    pipe(stream, nextPipe).then(reject).catch(resolve)
+  });

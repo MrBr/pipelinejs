@@ -1,6 +1,6 @@
 # Pipeline || PipelineJS
 
-Write application by writing it's topology and using independent micro services.
+Write an application by writing its topology and using independent micro services.
 
 ## Documentation
 
@@ -29,19 +29,28 @@ Used only with serial pipes, where closedStream is kept in pipes.
 
 Everything can be anything and everything can have something before or after core process or be core process it self.
 
-Your application snapshot or topology is static, it always is, pipeline enables you to create that topology very easy and clear.
+Your application snapshot or topology is static, it always is, pipeline enables you to create that topology very easy and clean.
 
 ## Example - please refer to test to see example
 
 
 ## Roadmap, concerns
 
-There are still few things to be specified more precisely, primary determining if some implicit (conventional) things should be kept that way or changed to be explicit.
+There are still few things to be specified more precisely, primary determining if some implicit (conventional) things should be kept the way  they are or changed to be explicit.
 
 Naming is to be improved, depending to much on a real piping systems.
 
-Stream interface (convention). Should it always be an object or primitive values ar to be accepted as well?
+Stream interface (convention). Should it always be an object or primitive values are to be accepted as well?
 
 Closing pipe can be done with promise and with close callback?
 
-Find out is more common case that Pipelines (and pipes) are connected in serial or parallel.
+Find out if more common case is that Pipelines (and pipes) are connected in serial or parallel.
+
+Wrappers hide original pipeline, making it hard to extend its functionality, that is why they need to have special status. It must be possible to get wrapped instance.
+Either they will have special interface or will be attached specially, prefer to keep them as normal functions.
+
+Create a pipe transformers, should transform stream getting into the pipe and stream getting out of the pipe. Add two additional arguments to the pipe, `(outStream, stream) => {...newStream}`, `stream => {...newStream}`. Out transformer is required if there is about to be any transformer. 
+
+Make pipeline sections execute in parallel.
+
+Create a reconciliation algorithm to merge streams processed in parallel.

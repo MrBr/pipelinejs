@@ -1,7 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
-import { Pipeline, inverse } from '../src';
+import { Pipeline, inverse, pipeClosedStreamToDrain, parallel } from '../src';
 
 chai.use(chaiAsPromised);
 
@@ -66,7 +66,8 @@ describe('Pipeline', () => {
         const supplyPipeline = new Pipeline();
         supplyPipeline.supply(function () {
           return new Promise(function (resolve, reject) {
-            reject({});
+            // throw new Error({});
+            reject({ error: 'Or is it?' });
           });
         });
 
@@ -101,7 +102,7 @@ describe('Pipeline', () => {
   });
   describe('take', () => {
       it('provides proper Pipeline', () => {
-        const addXYv0 = new Pipeline(addXY);
+        const addXYv0 = new Pipeline().sink(addXY);
         const supplyXPipeline = addXYv0
           .supply(supplyX)
           .take();
@@ -112,6 +113,8 @@ describe('Pipeline', () => {
       });
   });
   describe('close', () => {
+    // TODO - rename close to return so that it makes more sense to use it, to be associated
+    //  with early return, which it actually is?
     it('calls closing pipes when closing', () => {
       const closePipe1 = (stream) => ({ ...stream, close1: true });
       const closePipe2 = (stream) => ({ ...stream, close2: true });
@@ -149,8 +152,9 @@ describe('Pipeline', () => {
         })
         .sink(() => ({ y: 3 }));
 
-      pipeline.sink(pipeSetX2).disconnect();
-      pipeline.sink(pipeSetY3).disconnect();
+      pipeline
+        .sink(pipeSetX2)
+        .sink(pipeSetY3);
 
       const stream1 = pipeline
         .pipe({ setX: true });
@@ -158,8 +162,8 @@ describe('Pipeline', () => {
           .pipe({ setY: true });
 
       return Promise.all([
-        expect(stream1).to.eventually.deep.equal({ x: 2 }),
-        expect(stream2).to.eventually.deep.equal({ y: 3 })
+        expect(stream1).to.eventually.be.rejectedWith({ x: 2 }),
+        expect(stream2).to.eventually.be.rejectedWith({ y: 3 })
       ]);
     });
   });
@@ -171,21 +175,64 @@ describe('Pipeline', () => {
     //   .supply(supplyY)
     //   .sink(double)
     //   .take();
+
+    // pipeline
+    //   .next()
+    //     .next()
+    //       .next();
+    //
+    // pipeline
+    //   .filter()
+    //   .supply()
+    //     .take()
+    //     .next()
+    //       .take()
+    //       .next()
+    //         .take()
+    //         .next()
+    //       .return()
+    //     .return()
+    //   .return()
+    //   .supply()
+    //   .handle()
+    //     .take()
+    //   .return()
+    //   .close()
+    //   .drain();
+    //
+    // pipeline
+    //   .filter()
+    //   .supply()
+    //     .lastNext()
+    //       .lastNext()
+    //         .lastNext()
+    //   .supply()
+    //   .handle()
+    //     .take()
+    //   .return()
+    //   .close()
+    //   .drain();
   });
   describe('disconnect', () => {
-    it('makes disconnected pipe parallel', () => {
-      const drain = sinon.spy(() => {});
-
-      const pipeline = new Pipeline();
-      pipeline
-        .supply((stream, close) => close()).disconnect()
-        .drain(console.log)
-        .drain(drain);
-
-      return pipeline
-        .pipe({})
-        .then(() => expect(drain.callCount).to.be.equal(1))
-        .catch(console.log);
-    });
+    // it('makes disconnected pipe parallel', () => {
+    //   const drain = sinon.spy(() => {});
+    //   const parallelFunction = sinon.spy(() => {});
+    //
+    //   const pipeline = new Pipeline();
+    //   pipeline
+    //     .supply(parallelFunction)
+    //     .disconnect()
+    //       .take()
+    //       .supply(parallelFunction)
+    //     .return()
+    //     .drain(drain);
+    //
+    //   return pipeline
+    //     .pipe({})
+    //     .then(() => {
+    //       expect(drain.callCount).to.be.equal(1);
+    //       expect(parallelFunction.callCount).to.be.equal(1);
+    //     });
+    // });
   });
 });

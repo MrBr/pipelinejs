@@ -1,3 +1,3 @@
-export { default as Pipeline, isPipeline, inverse } from './Pipeline';
+export { default as Pipeline, isPipeline, inverse, parallel, pipeClosedStreamToDrain } from './Pipeline';
 
-export { default as Stream } from './Stream';
+export { default as pipe } from './pipe';
