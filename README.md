@@ -54,3 +54,5 @@ Create a pipe transformers, should transform stream getting into the pipe and st
 Make pipeline sections execute in parallel.
 
 Create a reconciliation algorithm to merge streams processed in parallel.
+
+Stream can be anything, but it should be only one argument.
