@@ -15,7 +15,6 @@ export default class Pipeline {
       sink: [],
       drain: [],
       close: [],
-      trap: [],
       last: { pipe: null, type: undefined }, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
       parent,
@@ -54,15 +53,14 @@ export default class Pipeline {
    * @param type
    * @returns {Pipeline}
    */
-  connect(pipe, type) {
+  connect(...args) {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
     //  further more, main pipes can be sorted?
+    const pipeDescriptor = transformConnectArgsToPipeDescriptor(...args);
+    const { type } = pipeDescriptor;
 
-    this.pipes[type].push(pipe);
-    this.pipes.last = {
-      pipe,
-      type
-    };
+    this.pipes[type].push(pipeDescriptor);
+    this.pipes.last = pipeDescriptor;
     return this;
   }
 
@@ -80,8 +78,8 @@ export default class Pipeline {
    * @param pipe
    * @returns {*}
    */
-  supply(pipe) {
-    return this.connect(pipe, 'supply');
+  supply(...args) {
+    return this.connect(...args, 'supply');
   }
 
   /**
@@ -89,8 +87,8 @@ export default class Pipeline {
    * @param pipe
    * @returns {*}
    */
-  sink(pipe) {
-    return this.connect(pipe, 'sink');
+  sink(...args) {
+    return this.connect(...args, 'sink');
   }
 
   /**
@@ -98,25 +96,37 @@ export default class Pipeline {
    * @param pipe
    * @returns {*}
    */
-  drain(pipe) {
-    return this.connect(pipe, 'drain');
+  drain(...args) {
+    return this.connect(...args, 'drain');
   }
 
-  close(pipe) {
-    return this.connect(pipe, 'close');
+  close(...args) {
+    return this.connect(...args, 'close');
   }
 
+  /**
+   * Either return new pipeline reference or create new from pipe.
+   * @returns {*}
+   */
   take() {
     // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
-    const pipe = this.pipes.last.pipe;
+    const pipeDescriptor = this.pipes.last;
+    const pipe = pipeDescriptor.pipe;
     // TODO - if pipeline and in serial then serial wrapper is not needed anymore when taken
     //  because pipeline is replicated with parent, meaning it is in serial
     // TODO - is it better to always replicate pipeline?
     // Lazy replicate reduces number of replicated Pipelines allowing them to behave static
     // TODO - parallel pipelines shouldn't get parent! Add test for that case!
     const pipeline = isPipeline(pipe) ? pipe.replicate() : new Pipeline(this).sink(pipe);
-
     pipeline.parent(this);
+
+    // TODO - Add tests
+    // TODO - Bit strange way to change pipe in chain? it is strange because by mutating last
+    //  chain is changed?
+    // Replace old pipe.
+    // If old pipe wouldn't be replaced, pipe modification
+    // after take() would not affect piped stream.
+    pipeDescriptor.pipe = pipeline;
 
     // TODO - rethink disconnect/remove binding
     pipeline.remove = () => {
@@ -171,18 +181,48 @@ export default class Pipeline {
         .catch(closePipeline);
     });
 
-    const trap = this.pipes.trap;
-    const trappedPromise = trap.reduce((prevPipe, nextPipe) => nextPipe(prevPipe)(stream), promise);
-
     // Place to catch possible real errors
     // Primary added to remove unhandled promise warning.
     // Rejection in Pipeline does not necessary indicate error. It can just be early return.
-    trappedPromise.catch(console.log);
+    promise.catch(console.log);
 
-    return trappedPromise;
+    return promise;
   }
 }
 
+
+function transformConnectArgsToPipeDescriptor(...args) {
+  const pipe = args[0];
+  let type;
+  let outTransformer;
+  let inTransformer;
+  let options = { connected: true }; // Defaults
+
+  const argsLength = args.length;
+  if (argsLength === 2) {
+    type = args[1];
+  } else if (argsLength === 4) {
+    outTransformer = args[1];
+    inTransformer = args[2];
+    type = args[3];
+  } else if (argsLength === 5) {
+    outTransformer = args[1];
+    inTransformer = args[2];
+    options = args[3];
+    type = args[4];
+  } else {
+    console.log(args);
+    throw Error('Trying to connect pipe with invalid arguments.');
+  }
+
+  return {
+    pipe,
+    type,
+    outTransformer,
+    inTransformer,
+    ...options,
+  }
+}
 // Fake close, calling close doesn't affect original stream when in parallel.
 export const parallel = pipe => stream => stream;
 

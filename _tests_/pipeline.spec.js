@@ -107,7 +107,7 @@ describe('Pipeline', () => {
           .supply(supplyX)
           .take();
 
-        expect(addXYv0.pipes.supply[0] === supplyXPipeline.pipes.sink[0]).to.be.ok;
+        expect(addXYv0.pipes.supply[0].pipe).to.be.deep.equal(supplyXPipeline);
 
         return expect(supplyXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
       });

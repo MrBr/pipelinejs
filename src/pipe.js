@@ -10,11 +10,23 @@ import { isPipeline } from './Pipeline';
 function resolvePipe(pipeline) { // TODO - better name
   if (isPipeline(pipeline)) {
     // TODO - find better way then creating new function (optimization)
+    //  Maybe bind when adding pipe?
     return pipeline.pipe.bind(pipeline);
   } else if (_.isFunction(pipeline)) {
     return pipeline;
   }
-  return undefined;
+  // pipeline = pipelineDescriptor
+  return resolvePipe(pipeline.pipe);
+}
+
+function transformOutStream(newStream, stream, pipeDescriptor) {
+  const { outTransformer } = pipeDescriptor;
+  return outTransformer ? outTransformer(newStream, stream) : newStream;
+}
+
+function transformInStream(stream, pipeDescriptor) {
+  const { inTransformer } = pipeDescriptor;
+  return inTransformer ? inTransformer(stream) : stream;
 }
 
 /**
@@ -26,13 +38,17 @@ function resolvePipe(pipeline) { // TODO - better name
 
 export default function pipe(stream, pipeline, index = 0) { // TODO - rename (and this file)
   return new Promise((resolve, reject) => {
-    const currentPipe = resolvePipe(_.isArray(pipeline) ? pipeline[index] : pipeline);
+    // Pipeline descriptor or pipe (a function or a pipeline) - TODO - standardise
+    const currentPipeDescriptor = _.isArray(pipeline) ? pipeline[index] : pipeline;
 
-    if (!currentPipe) {
+    if (!currentPipeDescriptor) {
       // No more pipes, resolve
       resolve(stream);
       return;
     }
+
+    const currentPipe = resolvePipe(currentPipeDescriptor);
+    const inStream = transformInStream(stream, currentPipeDescriptor);
 
     let closed = false;
     // Close flow so that newStream doesn't go further.
@@ -47,14 +63,14 @@ export default function pipe(stream, pipeline, index = 0) { // TODO - rename (an
     // This creates recursive mechanism resolving all from bottom to top.
     // Final effect is pipes serialization.
     const nextPipe =
-      (nextStream = stream) =>
-        pipe(nextStream, pipeline, index + 1)
+      nextStream =>
+        pipe(transformOutStream(nextStream, stream, currentPipeDescriptor), pipeline, index + 1)
           .then(resolve)
           // It is not needed to check here if flow is closed because nextPipe is only going
           // to be called if previous passed or it was in parallel.
           .catch(closePipe);
 
-    const newStream = currentPipe(stream, closePipe);
+    const newStream = currentPipe(inStream, closePipe);
 
     if (closed) {
       // Closed with closePipe function.
