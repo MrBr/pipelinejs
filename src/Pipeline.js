@@ -201,6 +201,9 @@ function transformConnectArgsToPipeDescriptor(...args) {
   const argsLength = args.length;
   if (argsLength === 2) {
     type = args[1];
+  } else if (argsLength === 3) {
+    outTransformer = args[1];
+    type = args[2];
   } else if (argsLength === 4) {
     outTransformer = args[1];
     inTransformer = args[2];
