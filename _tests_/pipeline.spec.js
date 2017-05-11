@@ -49,7 +49,7 @@ describe('Pipeline', () => {
         .supply(supplyX)
         .supply(supplyY)
         .sink(addXY)
-        .sink(double);
+          .chain(double);
 
       return expect(addXYv0.pipe({})).to.eventually.deep.equal({ x: 2, y: 4, data: 12 });
         // .then(console.log);
@@ -134,25 +134,29 @@ describe('Pipeline', () => {
       const addXYv0 = new Pipeline();
       addXYv0
         .supply(supplyX)
-        .supply((stream, close) => close(stream))
+        .supply((stream, close) => close('error'))
         .sink(addXY)
         .sink(double);
 
-      return expect(inverse(addXYv0)({})).to.eventually.deep.equal({ x: 2 });
+      return expect(inverse(addXYv0)({})).to.eventually.deep.equal('error');
     });
     it('closes parallel pipe properly', () => {
-      const pipeline = new Pipeline();
+      const errorMessage1 = 'error1';
+      const errorMessage2 = 'error2';
       const pipeSetX2 = new Pipeline()
         .supply((stream, close) => {
-          !stream.setX && close();
+          !stream.setX && close(errorMessage1);
+          return;
         })
         .sink(() => ({ x: 2 }));
       const pipeSetY3 = new Pipeline()
         .supply((stream, close) => {
-          !stream.setY && close();
+          !stream.setY && close(errorMessage2);
+          return;
         })
         .sink(() => ({ y: 3 }));
 
+      const pipeline = new Pipeline();
       pipeline
         .sink(pipeSetX2)
         .sink(pipeSetY3);
@@ -160,11 +164,15 @@ describe('Pipeline', () => {
       const stream1 = pipeline
         .pipe({ setX: true });
       const stream2 = pipeline
-          .pipe({ setY: true });
+        .pipe({ setY: true });
 
       return Promise.all([
-        expect(stream1).to.eventually.be.rejectedWith({ x: 2 }),
-        expect(stream2).to.eventually.be.rejectedWith({ y: 3 })
+        expect(stream1).to.eventually.be.rejected.then(error => {
+          expect(error).to.be.equal(errorMessage2)
+        }),
+        expect(stream2).to.eventually.be.rejected.then(error => {
+          expect(error).to.be.equal(errorMessage1);
+        }),
       ]);
     });
   });

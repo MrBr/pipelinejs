@@ -7,14 +7,14 @@ import { isPipeline } from './Pipeline';
  * @param pipeline
  * @returns {*}
  */
-function resolvePipe(pipeline) { // TODO - better name
+function getPipe(pipeline) { // TODO - better name
   if (isPipeline(pipeline)) {
     return pipeline.pipe;
   } else if (_.isFunction(pipeline)) {
     return pipeline;
   }
   // pipeline = pipelineDescriptor
-  return resolvePipe(pipeline.pipe);
+  return getPipe(pipeline.pipe);
 }
 
 function transformOutStream(newStream, stream, pipeDescriptor) {
@@ -34,40 +34,21 @@ function transformInStream(stream, pipeDescriptor) {
  * simpler should be to continue then to stop.
  */
 
-export default function pipe(stream, pipeline, index = 0) {
-  // TODO - remove new promise overhead for sync returns; use Promise.resolve || .reject
+export default (stream, currentPipeDescriptor) => {
   return new Promise((resolve, reject) => {
-    // Pipeline descriptor or pipe (a function or a pipeline) - TODO - standardise
-    const currentPipeDescriptor = _.isArray(pipeline) ? pipeline[index] : pipeline;
-
-    if (!currentPipeDescriptor) {
-      // No more pipes, resolve
-      resolve(stream);
-      return;
-    }
-
-    const currentPipe = resolvePipe(currentPipeDescriptor);
+    const currentPipe = getPipe(currentPipeDescriptor);
     const inStream = transformInStream(stream, currentPipeDescriptor);
+
+    const resolvePipe = nextStream =>
+      resolve(transformOutStream(nextStream, stream, currentPipeDescriptor));
 
     let closed = false;
     // Close flow so that newStream doesn't go further.
-    const closePipe = (closedStream = stream) => {
+    const closePipe = closedStream => {
       // Helps handle both async and sync flows.
       closed = true;
-
       reject(closedStream);
     };
-
-    // Only when stream is piped through nextPipe resolve current.
-    // This creates recursive mechanism resolving all from bottom to top.
-    // Final effect is pipes serialization.
-    const nextPipe =
-      nextStream =>
-        pipe(transformOutStream(nextStream, stream, currentPipeDescriptor), pipeline, index + 1)
-          .then(resolve)
-          // It is not needed to check here if flow is closed because nextPipe is only going
-          // to be called if previous passed or it was in parallel.
-          .catch(closePipe);
 
     const newStream = currentPipe(inStream, closePipe);
 
@@ -86,17 +67,16 @@ export default function pipe(stream, pipeline, index = 0) {
       //  Trying to preserve as much as possible JS practices
       //  Early return of `undefined` is one of them when nothing is done?
       //  However, returning same object would be more explicit.
-      nextPipe(stream);
+      resolvePipe(stream);
     } else if (newStream instanceof Promise) {
-      newStream.then(nextPipe).catch(closePipe);
+      newStream.then(resolvePipe).catch(closePipe);
     } else if (_.isPlainObject(newStream)) {
-      nextPipe(newStream);
+      resolvePipe(newStream);
     } else {
       console.log('Invalid stream, must be object, undefined or promise.');
       console.log('Stream value: ', newStream);
-      console.log('Pipe: ', pipeline);
-      closePipe(newStream);
+      console.log('Pipe: ', currentPipe);
+      closePipe({ error: 'Invalid stream', stream: newStream});
     }
   });
 }
-

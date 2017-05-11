@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import pipe from './pipe';
+import parallel from './parallel';
 
 export default class Pipeline {
   /**
@@ -136,9 +137,9 @@ export default class Pipeline {
     return pipeline;
   }
 
-  serialize() {
+  getSections() {
     const { supply, sink, drain } = this.pipes;
-    return [...supply, ...sink, ...drain];
+    return [supply, sink, drain];
   }
 
   /**
@@ -152,11 +153,14 @@ export default class Pipeline {
       const closePipeline = closedStream => {
         // TODO - closing can not be stopped (closed again), improve this to prevent that case?
         // TODO - is closing only important for serial pipes?
-        pipe(closedStream, this.pipes.close).then(reject).catch(reject);
+        parallel(closedStream, this.pipes.close).then(reject).catch(reject);
       };
 
-      const pipes = this.serialize();
-      pipe(stream, pipes)
+      const sections = this.getSections();
+
+      _.reduce(sections, (nextPromise, section) => {
+        return nextPromise.then((stream) => parallel(stream, section));
+      }, Promise.resolve(stream))
         .then(resolve)
         .catch(closePipeline);
     });
@@ -204,14 +208,6 @@ function transformConnectArgsToPipeDescriptor(...args) {
     type,
     outTransformer,
     inTransformer,
-  }
-}
-// Fake close, calling close doesn't affect original stream when in parallel.
-export const parallel = pipe => stream => stream;
-
-export function createSerialPipeFromPipeline(pipeline) {
-  return function (stream) {
-    return new Promise((resolve, reject) => pipe(stream, pipeline).then(resolve).catch(reject));
   }
 }
 
