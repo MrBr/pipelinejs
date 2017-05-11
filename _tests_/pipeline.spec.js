@@ -52,11 +52,6 @@ describe('Pipeline', () => {
           .chain(double);
 
       return expect(addXYv0.pipe({})).to.eventually.deep.equal({ x: 2, y: 4, data: 12 });
-        // .then(console.log);
-        // .pipe(); // No stream means all data is injected?
-
-      // Stream enhancer - format stream - Stream interface? I.E. Data stream indicates that data is focus of stream... meh
-      // (stream, oldStream) => _.isPlainObject(stream) ? stream : { data: stream, ...oldStream }
     });
     describe('lifecycle', () => {
       it('async pipe rejects only once', () => {
@@ -179,91 +174,16 @@ describe('Pipeline', () => {
   describe('chain', () => {
     it('extend pipe with chained pipes', () => {
       const pipeline = new Pipeline()
-        .supply((stream) => {
-          return { ...stream, x: 2}
-        })
-          .chain((stream) => {
-            return { ...stream, y: 2 };
-          })
-          .chain((stream) => {
-        console.log(stream)
-            return { ...stream, z: 2 };
-          })
+        .supply((stream) => ({ ...stream, x: 2}))
+          .chain((stream) => ({ ...stream, y: 2 }))
+          .chain((stream) => ({ ...stream, z: 2 }))
         .sink((stream) => {
-        const { x, y, z } = stream;
+          const { x, y, z } = stream;
           return { sum: x + y + z, ...stream };
         });
 
       const expectedStream = { x: 2, y: 2, z: 2, sum: 6 };
       return expect(pipeline.pipe({})).to.eventually.deep.equal(expectedStream);
     });
-  });
-  describe('clone', () => {
-    // Example of saving partial functionality // TODO - copy -> create new ref without modifying original
-    // const doubleXYSum = addXYv0
-    //   .clone() // TODO - or copy?
-    //   .supply(supplyX)
-    //   .supply(supplyY)
-    //   .sink(double)
-    //   .take();
-
-    // pipeline
-    //   .next()
-    //     .next()
-    //       .next();
-    //
-    // pipeline
-    //   .filter()
-    //   .supply()
-    //     .take()
-    //     .next()
-    //       .take()
-    //       .next()
-    //         .take()
-    //         .next()
-    //       .return()
-    //     .return()
-    //   .return()
-    //   .supply()
-    //   .handle()
-    //     .take()
-    //   .return()
-    //   .close()
-    //   .drain();
-    //
-    // pipeline
-    //   .filter()
-    //   .supply()
-    //     .lastNext()
-    //       .lastNext()
-    //         .lastNext()
-    //   .supply()
-    //   .handle()
-    //     .take()
-    //   .return()
-    //   .close()
-    //   .drain();
-  });
-  describe('disconnect', () => {
-    // it('makes disconnected pipe parallel', () => {
-    //   const drain = sinon.spy(() => {});
-    //   const parallelFunction = sinon.spy(() => {});
-    //
-    //   const pipeline = new Pipeline();
-    //   pipeline
-    //     .supply(parallelFunction)
-    //     .disconnect()
-    //       .take()
-    //       .supply(parallelFunction)
-    //     .return()
-    //     .drain(drain);
-    //
-    //   return pipeline
-    //     .pipe({})
-    //     .then(() => {
-    //       expect(drain.callCount).to.be.equal(1);
-    //       expect(parallelFunction.callCount).to.be.equal(1);
-    //     });
-    // });
   });
 });
