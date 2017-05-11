@@ -19,6 +19,7 @@ export default class Pipeline {
       // Create root parent to handle all undefined? effluent?
       parent,
     };
+    this.pipe = this.pipe.bind(this);
   }
 
   // TODO - this is not needed? wrong concept
@@ -219,11 +220,11 @@ function transformConnectArgsToPipeDescriptor(...args) {
   }
 
   return {
+    ...options, // Options should be used to add new properties not override
     pipe,
     type,
     outTransformer,
     inTransformer,
-    ...options,
   }
 }
 // Fake close, calling close doesn't affect original stream when in parallel.
