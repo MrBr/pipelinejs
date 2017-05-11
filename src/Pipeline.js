@@ -22,32 +22,6 @@ export default class Pipeline {
     this.pipe = this.pipe.bind(this);
   }
 
-  // TODO - this is not needed? wrong concept
-  /**
-   * Used for enhance
-   * @param newPipe
-   * @param type
-   * @returns {Pipeline}
-   */
-  replaceLastPipeOfType(newPipe, type) {
-    const pipesCountForType = this.pipes[type].length;
-    this.pipes[type][pipesCountForType - 1] = newPipe;
-    return this;
-  }
-
-  /**
-   *
-   * @param enhancer {function}
-   * @returns {Pipeline}
-   */
-  enhance(enhancer) { // TODO - better name
-    const { type } = this.pipes.last;
-    const pipe = _.last(this.pipes[type]);
-    const enhancedPipe = enhancer(pipe);
-    this.replaceLastPipeOfType(enhancedPipe, type);
-    return this;
-  }
-
   /**
    * Add serial pipe or pipeline.
    * @param pipe
