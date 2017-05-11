@@ -125,9 +125,10 @@ describe('Pipeline', () => {
         .close(closePipe1)
         .close(closePipe2);
 
-      const clodedPipeling = new Pipeline().supply(inverse(pipeline));
+      const closedPipeline = new Pipeline().supply(inverse(pipeline));
 
-      return expect(clodedPipeling.pipe({})).to.eventually.be.deep.equal({ close1: true, close2: true });
+      const expectedStream = { close1: true, close2: true };
+      return expect(closedPipeline.pipe({})).to.eventually.be.deep.equal(expectedStream);
     });
     it('closes serial pipe properly', () => {
       const addXYv0 = new Pipeline();
