@@ -4,8 +4,6 @@ import pipe from './pipe';
 export default class Pipeline {
   /**
    *
-   * @param main {function}
-   *  Main pipeline process
    * @param parent {Pipeline}
    */
   constructor(parent = null) {
@@ -23,7 +21,7 @@ export default class Pipeline {
   }
 
   /**
-   * Add serial pipe or pipeline.
+   * Add a pipe or a pipeline to the time zone.
    * @param pipe
    * @param type
    * @returns {Pipeline}
@@ -37,10 +35,6 @@ export default class Pipeline {
     this.pipes[type].push(pipeDescriptor);
     this.pipes.last = pipeDescriptor;
     return this;
-  }
-
-  disconnect() {
-    
   }
 
   parent(parent) {
@@ -105,7 +99,7 @@ export default class Pipeline {
 
     // TODO - rethink disconnect/remove binding
     pipeline.remove = () => {
-      // Removing drain does not effect this.pipes.last because
+      // Removing a pipe does not effect this.pipes.last because
       // last is used only to create snapshot
       _.remove(this.pipes[type], pipeline);
     };
@@ -119,8 +113,9 @@ export default class Pipeline {
 
   /**
    * Deep copy.
-   * Create new Pipeline that recreates all pipes as current. All references are changed, there is
-   * no relation between new Pipeline and current.
+   * Create the new Pipeline that recreates all pipes as current.
+   * All references are changed, there is no relation between
+   * the new Pipeline and the current.
    */
   replicate() {
     const pipeline = new Pipeline();
