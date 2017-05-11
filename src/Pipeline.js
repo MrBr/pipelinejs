@@ -106,6 +106,16 @@ export default class Pipeline {
     return pipeline;
   }
 
+  /**
+   * Add a pipe to the last pipe in the chain of the last pipe -_-
+   * @param pipe
+   * @returns {Pipeline}
+   */
+  chain(pipe) {
+    this.take().drain(pipe);
+    return this;
+  }
+
   return() { // TODO - confirm name; parent?
     // TODO - handle no parent
     return this.pipes.parent;

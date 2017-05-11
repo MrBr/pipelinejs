@@ -168,6 +168,28 @@ describe('Pipeline', () => {
       ]);
     });
   });
+  describe('chain', () => {
+    it('extend pipe with chained pipes', () => {
+      const pipeline = new Pipeline()
+        .supply((stream) => {
+          return { ...stream, x: 2}
+        })
+          .chain((stream) => {
+            return { ...stream, y: 2 };
+          })
+          .chain((stream) => {
+        console.log(stream)
+            return { ...stream, z: 2 };
+          })
+        .sink((stream) => {
+        const { x, y, z } = stream;
+          return { sum: x + y + z, ...stream };
+        });
+
+      const expectedStream = { x: 2, y: 2, z: 2, sum: 6 };
+      return expect(pipeline.pipe({})).to.eventually.deep.equal(expectedStream);
+    });
+  });
   describe('clone', () => {
     // Example of saving partial functionality // TODO - copy -> create new ref without modifying original
     // const doubleXYSum = addXYv0
