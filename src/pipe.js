@@ -9,9 +9,7 @@ import { isPipeline } from './Pipeline';
  */
 function resolvePipe(pipeline) { // TODO - better name
   if (isPipeline(pipeline)) {
-    // TODO - find better way then creating new function (optimization)
-    //  Maybe bind when adding pipe?
-    return pipeline.pipe.bind(pipeline);
+    return pipeline.pipe;
   } else if (_.isFunction(pipeline)) {
     return pipeline;
   }
@@ -36,7 +34,8 @@ function transformInStream(stream, pipeDescriptor) {
  * simpler should be to continue then to stop.
  */
 
-export default function pipe(stream, pipeline, index = 0) { // TODO - rename (and this file)
+export default function pipe(stream, pipeline, index = 0) {
+  // TODO - remove new promise overhead for sync returns; use Promise.resolve || .reject
   return new Promise((resolve, reject) => {
     // Pipeline descriptor or pipe (a function or a pipeline) - TODO - standardise
     const currentPipeDescriptor = _.isArray(pipeline) ? pipeline[index] : pipeline;
@@ -73,7 +72,7 @@ export default function pipe(stream, pipeline, index = 0) { // TODO - rename (an
     const newStream = currentPipe(inStream, closePipe);
 
     if (closed) {
-      // Closed with closePipe function.
+      // Closed with closePipe function (It means close flow already started).
       // It is a bit hidden relation but it simplifies closing pattern.
       // Removes need to return anything when closing.
       return;
