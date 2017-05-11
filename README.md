@@ -42,17 +42,18 @@ Naming is to be improved, depending to much on a real piping systems.
 
 Stream interface (convention). Should it always be an object or primitive values are to be accepted as well?
 
-Closing pipe can be done with promise and with close callback?
+Closing pipe can be done with promise and with close callback? Yes, but only one way should be used.
 
 Find out if more common case is that Pipelines (and pipes) are connected in serial or parallel.
 
 Wrappers hide original pipeline, making it hard to extend its functionality, that is why they need to have special status. It must be possible to get wrapped instance.
 Either they will have special interface or will be attached specially, prefer to keep them as normal functions.
 
-Create a pipe transformers, should transform stream getting into the pipe and stream getting out of the pipe. Add two additional arguments to the pipe, `(outStream, stream) => {...newStream}`, `stream => {...newStream}`. Out transformer is required if there is about to be any transformer. 
-
-Make pipeline sections execute in parallel.
-
-Create a reconciliation algorithm to merge streams processed in parallel.
-
 Stream can be anything, but it should be only one argument.
+
+
+Namings:
+* Filter
+* Supply | Selector
+* Handle | Process | Action
+* Next | PostProcess
