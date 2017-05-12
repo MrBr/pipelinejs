@@ -9,7 +9,7 @@ export default class Pipeline {
    * @param pipe {Pipeline}
    * @param parent {Pipeline}
    */
-  constructor(pipe, parent = null) {
+  constructor(parent = null, pipe) {
     // TODO - handle unexpected main and parent
     const sink = pipe ? [pipe] : [];
     this.pipes = { // Pipelines?
@@ -95,7 +95,7 @@ export default class Pipeline {
     // TODO - is it better to always replicate pipeline?
     // Lazy replicate reduces number of replicated Pipelines allowing them to behave static
     // TODO - parallel pipelines shouldn't get parent! Add test for that case!
-    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(pipe, this);
+    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(this, pipe);
     pipeline.parent(this);
 
     // TODO - Add tests
