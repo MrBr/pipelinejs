@@ -1,12 +1,26 @@
 import _ from 'lodash';
 
 export default class PipeDescriptor {
+  constructor() {
+    // Interface
+    this.pipe;
+    this.outTransformer;
+    this.inTransformer;
+    this.meta;
+    this.type;
+  }
+
+  setup(settings) {
+    _.merge(this, settings);
+    return this;
+  }
+
   create(...args) {
     const pipe = args[0];
     let type;
     let outTransformer;
     let inTransformer;
-    let options = { connected: true }; // Defaults
+    let meta = { connected: true }; // Additional info
 
     const argsLength = args.length;
     if (argsLength === 2) {
@@ -21,7 +35,7 @@ export default class PipeDescriptor {
     } else if (argsLength === 5) {
       outTransformer = args[1];
       inTransformer = args[2];
-      options = args[3];
+      meta = args[3];
       type = args[4];
     } else {
       console.log(args);
@@ -29,17 +43,17 @@ export default class PipeDescriptor {
     }
 
     return this.setup({
-      ...options, // Options should be used to add new properties not override
       pipe,
-      type,
       outTransformer,
       inTransformer,
+      meta,
+      type,
     });
   }
 
-  setup(settings) {
-    _.assign(this, settings);
-    return this;
+  args(newSetup = {}) {
+    const { pipe, outTransformer, inTransformer, meta, type } = _.merge({}, this, newSetup);
+    return [pipe, outTransformer, inTransformer, meta, type];
   }
 
   replicate(customization = {}) {

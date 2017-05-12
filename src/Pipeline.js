@@ -6,26 +6,26 @@ import serial from './serial';
 
 export default class Pipeline {
   /**
-   * @param pipe {Pipeline}
    * @param parent {Pipeline}
    */
-  constructor(parent = null, pipe) {
+  constructor(parent = null) {
     // TODO - handle unexpected main and parent
-    const sink = pipe ? [pipe] : [];
-    this.pipes = { // Pipelines?
-      supply: [],
-      sink: sink,
-      drain: [],
-      close: [],
-      last: null, // TODO - confirm that only last is needed, can be pipes list
-      // Create root parent to handle all undefined? effluent?
-      parent,
+    this.pipes = {
+      input: [],
+      main: [],
+      output: [],
+      catch: [],
     };
+
+    this.last = null;
+    this.parent = parent;
+
     this.pipe = this.pipe.bind(this);
   }
 
   /**
    * Add a pipe or a pipeline to the time zone.
+   * When connecting pipe descriptor it will be connected to the initial type? // TODO - confirm
    * @param pipe
    * @param type
    * @returns {Pipeline}
@@ -34,25 +34,23 @@ export default class Pipeline {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
     //  further more, main pipes can be sorted?
     const pipeDescriptor = new PipeDescriptor().create(...args);
-    const { type } = pipeDescriptor;
 
+    const { type } = pipeDescriptor;
     this.pipes[type].push(pipeDescriptor);
-    this.pipes.last = pipeDescriptor;
+
+    this.last = pipeDescriptor;
+
     return this;
   }
 
-  parent(parent) {
-    this.pipes.parent = parent;
-  }
-
   /**
-   * Before the main drain, used to filter out unwanted streams
+   * Before the main pipes, used to filter out unwanted streams
    * or supply stream with data.
    * @param pipe
    * @returns {*}
    */
-  supply(...args) {
-    return this.connect(...args, 'supply');
+  input(...args) {
+    return this.connect(...args, 'input');
   }
 
   /**
@@ -60,21 +58,43 @@ export default class Pipeline {
    * @param pipe
    * @returns {*}
    */
-  sink(...args) {
-    return this.connect(...args, 'sink');
+  main(...args) {
+    return this.connect(...args, 'main');
   }
 
   /**
-   * After the main drain and sink pipes, used to check? processed stream.
+   * After the stream is processed, last pipes in order.
    * @param pipe
    * @returns {*}
    */
-  drain(...args) {
-    return this.connect(...args, 'drain');
+  output(...args) {
+    return this.connect(...args, 'output');
   }
 
-  close(...args) {
-    return this.connect(...args, 'close');
+  catch(...args) {
+    return this.connect(...args, 'catch');
+  }
+
+  getInputPipes() {
+    return [];
+  }
+
+  getOutputPipes() {
+    return [];
+  }
+
+  replace(pipeDescriptor, newPipeDescriptor) {
+    const { type } = pipeDescriptor;
+    const { type: newType } = newPipeDescriptor;
+
+    if (type !== newType) {
+      throw Error(`Trying to replace ${type} with ${newType}`);
+    }
+
+    const pipes = this.pipes[type];
+    const index = _.indexOf(pipes, pipeDescriptor);
+
+    pipes[index] = newPipeDescriptor;
   }
 
   /**
@@ -83,57 +103,53 @@ export default class Pipeline {
    */
   take() {
     // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
-    const pipeDescriptor = this.pipes.last;
+    const pipeDescriptor = this.last;
 
     if (!pipeDescriptor) {
-      return null;
+      throw Error('Trying to take the last pipe in an empty Pipeline');
     }
 
-    const pipe = pipeDescriptor.replicate({ type: 'sink' });
-    // TODO - if pipeline and in serial then serial wrapper is not needed anymore when taken
-    //  because pipeline is replicated with parent, meaning it is in serial
-    // TODO - is it better to always replicate pipeline?
-    // Lazy replicate reduces number of replicated Pipelines allowing them to behave static
-    // TODO - parallel pipelines shouldn't get parent! Add test for that case!
-    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(this, pipe);
-    pipeline.parent(this);
+    const pipeline =  new Pipeline(this).connect(...pipeDescriptor.args({ type: 'main' }));
 
     // TODO - Add tests
-    // TODO - Bit strange way to change pipe in chain? it is strange because by mutating last
-    //  chain is changed?
-    // Replace old pipe.
-    // If old pipe wouldn't be replaced, pipe modification
-    // after take() would not affect piped stream.
-    pipeDescriptor.pipe = pipeline;
+    const newPipeDescriptor = new PipeDescriptor().create(pipeline, pipeDescriptor.type);
+    this.replace(pipeDescriptor, newPipeDescriptor);
+    // TODO - optimization - add to the last.meta "replicated" flag so that it is safe to mutate it.
+    // Is "replicated" flag secure enough that it can be mutate? What are the cases new copy is needed?
+    this.last = newPipeDescriptor;
 
     // TODO - rethink disconnect/remove binding
     pipeline.remove = () => {
       // Removing a pipe does not effect this.pipes.last because
       // last is used only to create snapshot
-      _.remove(this.pipes[type], pipeline);
+      _.remove(this.pipes[pipeDescriptor.type], newPipeDescriptor);
     };
+
     return pipeline;
   }
 
   /**
    * Add a pipe to the last pipe in the chain of the last pipe -_-
    * Recursively find the last pipe in the chain which doesn't have last pipe.
+   * Because pipes in the same sector may not depended on each other we can relay to chain
+   * related pipes to the output.
    * @param pipe
    * @returns {Pipeline}
    */
-  chain(pipe) {
-    const last = this.take();
-    if (last) {
-      last.chain(pipe);
+  chain(pipe, last = this.take()) {
+    const lastOutput = last.pipes.output;
+    if (_.isEmpty(lastOutput)) {
+      last.output(pipe);
     } else {
-      this.drain(pipe);
+      const tail = _.tail(lastOutput);
+      last.chain(pipe, tail);
     }
     return this;
   }
 
   return() { // TODO - confirm name; parent?
     // TODO - handle no parent
-    return this.pipes.parent;
+    return this.parent;
   }
 
   /**
@@ -151,9 +167,9 @@ export default class Pipeline {
     return pipeline;
   }
 
-  getSections() {
-    const { supply, sink, drain } = this.pipes;
-    return [supply, sink, drain];
+  compose() {
+    const { input, main, output } = this.pipes;
+    return [input, ...this.getInputPipes(), main, ...this.getOutputPipes(), output];
   }
 
   /**
@@ -164,19 +180,19 @@ export default class Pipeline {
    */
   pipe(stream = {}) {
     const promise = new Promise((resolve, reject) => {
-      const closePipeline = closedStream => {
+      const catchPipeline = errorStream => {
         // TODO - closing can not be stopped (closed again), improve this to prevent that case?
         // TODO - is closing only important for serial pipes?
-        parallel(closedStream, this.pipes.close).then(reject).catch(reject);
+        parallel(errorStream, this.pipes.catch).then(reject).catch(reject);
       };
 
-      const sections = this.getSections();
+      const sections = this.compose();
 
       _.reduce(sections, (nextPromise, section) => {
         return nextPromise.then((stream) => parallel(stream, section));
       }, Promise.resolve(stream))
         .then(resolve)
-        .catch(closePipeline);
+        .catch(catchPipeline);
     });
 
     // Place to catch possible real errors

@@ -12,14 +12,14 @@ chai.use(chaiAsPromised);
 //  Bringing peace to stream "subject" property? Property that is focus of process
 //  Stream interfaces? If "subject" property name vary, interface would standardise it.
 
-function supplyX(stream) {
+function inputX(stream) {
   return {
     ...stream,
     x: 2,
   }
 }
 
-function supplyY(stream) {
+function inputY(stream) {
   return {
     ...stream,
     y: 4,
@@ -46,9 +46,9 @@ describe('Pipeline', () => {
       // TODO - needs more asserts to confirm that it works? what tests damn it -_-
       const addXYv0 = new Pipeline();
       addXYv0
-        .supply(supplyX)
-        .supply(supplyY)
-        .sink(addXY)
+        .input(inputX)
+        .input(inputY)
+        .main(addXY)
           .chain(double);
 
       return expect(addXYv0.pipe({})).to.eventually.deep.equal({ x: 2, y: 4, data: 12 });
@@ -56,10 +56,10 @@ describe('Pipeline', () => {
     describe('lifecycle', () => {
       it('async pipe rejects only once', () => {
         // Note: Had case when it was rejected twice
-        const drain = sinon.spy(() => {});
+        const output = sinon.spy(() => {});
 
-        const supplyPipeline = new Pipeline();
-        supplyPipeline.supply(function () {
+        const inputPipeline = new Pipeline();
+        inputPipeline.input(function () {
           return new Promise(function (resolve, reject) {
             // throw new Error({});
             reject({ error: 'Or is it?' });
@@ -68,17 +68,17 @@ describe('Pipeline', () => {
 
         const pipeline = new Pipeline();
         pipeline
-          .supply(inverse(supplyPipeline))
-          .drain(drain);
+          .input(inverse(inputPipeline))
+          .output(output);
 
         return pipeline
           .pipe()
-          .then(() => expect(drain.callCount).to.be.equal(1));
+          .then(() => expect(output.callCount).to.be.equal(1));
       });
       it('async pipe resolves only once', () => {
-        const drain = sinon.spy(() => {});
-        const supplyPipeline = new Pipeline();
-        supplyPipeline.supply(function () {
+        const output = sinon.spy(() => {});
+        const inputPipeline = new Pipeline();
+        inputPipeline.input(function () {
           return new Promise(function (resolve, reject) {
             resolve({});
           });
@@ -86,25 +86,25 @@ describe('Pipeline', () => {
 
         const pipeline = new Pipeline();
         pipeline
-          .supply(supplyPipeline)
-          .drain(drain);
+          .input(inputPipeline)
+          .output(output);
 
         return pipeline
           .pipe()
-          .then(() => expect(drain.callCount).to.be.equal(1));
+          .then(() => expect(output.callCount).to.be.equal(1));
       });
     });
   });
   describe('take', () => {
       it('provides proper Pipeline', () => {
-        const addXYv0 = new Pipeline().sink(addXY);
-        const supplyXPipeline = addXYv0
-          .supply(supplyX)
+        const addXYv0 = new Pipeline().main(addXY);
+        const inputXPipeline = addXYv0
+          .input(inputX)
           .take();
 
-        expect(addXYv0.pipes.supply[0].pipe).to.be.deep.equal(supplyXPipeline);
+        expect(addXYv0.pipes.input[0].pipe).to.be.deep.equal(inputXPipeline);
 
-        return expect(supplyXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
+        return expect(inputXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
       });
   });
   describe('close', () => {
@@ -116,11 +116,11 @@ describe('Pipeline', () => {
 
       const pipeline = new Pipeline();
       pipeline
-        .supply((stream, close) => close())
-        .close(closePipe1)
-        .close(closePipe2);
+        .input((stream, close) => close())
+        .catch(closePipe1)
+        .catch(closePipe2);
 
-      const closedPipeline = new Pipeline().supply(inverse(pipeline));
+      const closedPipeline = new Pipeline().input(inverse(pipeline));
 
       const expectedStream = { close1: true, close2: true };
       return expect(closedPipeline.pipe({})).to.eventually.be.deep.equal(expectedStream);
@@ -128,10 +128,10 @@ describe('Pipeline', () => {
     it('closes serial pipe properly', () => {
       const addXYv0 = new Pipeline();
       addXYv0
-        .supply(supplyX)
-        .supply((stream, close) => close('error'))
-        .sink(addXY)
-        .sink(double);
+        .input(inputX)
+        .input((stream, close) => close('error'))
+        .main(addXY)
+        .main(double);
 
       return expect(inverse(addXYv0)({})).to.eventually.deep.equal('error');
     });
@@ -139,22 +139,22 @@ describe('Pipeline', () => {
       const errorMessage1 = 'error1';
       const errorMessage2 = 'error2';
       const pipeSetX2 = new Pipeline()
-        .supply((stream, close) => {
+        .input((stream, close) => {
           !stream.setX && close(errorMessage1);
           return;
         })
-        .sink(() => ({ x: 2 }));
+        .main(() => ({ x: 2 }));
       const pipeSetY3 = new Pipeline()
-        .supply((stream, close) => {
+        .input((stream, close) => {
           !stream.setY && close(errorMessage2);
           return;
         })
-        .sink(() => ({ y: 3 }));
+        .main(() => ({ y: 3 }));
 
       const pipeline = new Pipeline();
       pipeline
-        .sink(pipeSetX2)
-        .sink(pipeSetY3);
+        .main(pipeSetX2)
+        .main(pipeSetY3);
 
       const stream1 = pipeline
         .pipe({ setX: true });
@@ -174,10 +174,10 @@ describe('Pipeline', () => {
   describe('chain', () => {
     it('chained pipes execute synchronous', () => {
       const pipeline = new Pipeline()
-        .supply((stream) => ({ ...stream, x: 2}))
+        .input((stream) => ({ ...stream, x: 2}))
           .chain((stream) => ({ ...stream, x: stream.x + 2 }))
             .chain((stream) => ({ ...stream, x: stream.x + 2 }))
-        .sink((stream) => ({ ...stream , third: stream.x / 3}));
+        .main((stream) => ({ ...stream , third: stream.x / 3}));
 
       const expectedStream = { x: 6, third: 2 };
       return expect(pipeline.pipe({})).to.eventually.deep.equal(expectedStream);
