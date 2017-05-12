@@ -1,20 +1,23 @@
 import _ from 'lodash';
+import PipeDescriptor, { isPipeDescriptor } from './PipeDescriptor';
 import pipe from './pipe';
 import parallel from './parallel';
+import serial from './serial';
 
 export default class Pipeline {
   /**
-   *
+   * @param pipe {Pipeline}
    * @param parent {Pipeline}
    */
-  constructor(parent = null) {
+  constructor(pipe, parent = null) {
     // TODO - handle unexpected main and parent
+    const sink = pipe ? [pipe] : [];
     this.pipes = { // Pipelines?
       supply: [],
-      sink: [],
+      sink: sink,
       drain: [],
       close: [],
-      last: { pipe: null, type: undefined }, // TODO - confirm that only last is needed, can be pipes list
+      last: null, // TODO - confirm that only last is needed, can be pipes list
       // Create root parent to handle all undefined? effluent?
       parent,
     };
@@ -30,7 +33,7 @@ export default class Pipeline {
   connect(...args) {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
     //  further more, main pipes can be sorted?
-    const pipeDescriptor = transformConnectArgsToPipeDescriptor(...args);
+    const pipeDescriptor = new PipeDescriptor().create(...args);
     const { type } = pipeDescriptor;
 
     this.pipes[type].push(pipeDescriptor);
@@ -81,13 +84,18 @@ export default class Pipeline {
   take() {
     // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
     const pipeDescriptor = this.pipes.last;
-    const pipe = pipeDescriptor.pipe;
+
+    if (!pipeDescriptor) {
+      return null;
+    }
+
+    const pipe = pipeDescriptor.replicate({ type: 'sink' });
     // TODO - if pipeline and in serial then serial wrapper is not needed anymore when taken
     //  because pipeline is replicated with parent, meaning it is in serial
     // TODO - is it better to always replicate pipeline?
     // Lazy replicate reduces number of replicated Pipelines allowing them to behave static
     // TODO - parallel pipelines shouldn't get parent! Add test for that case!
-    const pipeline = isPipeline(pipe) ? pipe.replicate() : new Pipeline(this).sink(pipe);
+    const pipeline = isPipeline(pipe) ? pipe : new Pipeline(pipe, this);
     pipeline.parent(this);
 
     // TODO - Add tests
@@ -109,11 +117,17 @@ export default class Pipeline {
 
   /**
    * Add a pipe to the last pipe in the chain of the last pipe -_-
+   * Recursively find the last pipe in the chain which doesn't have last pipe.
    * @param pipe
    * @returns {Pipeline}
    */
   chain(pipe) {
-    this.take().drain(pipe);
+    const last = this.take();
+    if (last) {
+      last.chain(pipe);
+    } else {
+      this.drain(pipe);
+    }
     return this;
   }
 
@@ -174,43 +188,6 @@ export default class Pipeline {
   }
 }
 
-
-function transformConnectArgsToPipeDescriptor(...args) {
-  const pipe = args[0];
-  let type;
-  let outTransformer;
-  let inTransformer;
-  let options = { connected: true }; // Defaults
-
-  const argsLength = args.length;
-  if (argsLength === 2) {
-    type = args[1];
-  } else if (argsLength === 3) {
-    outTransformer = args[1];
-    type = args[2];
-  } else if (argsLength === 4) {
-    outTransformer = args[1];
-    inTransformer = args[2];
-    type = args[3];
-  } else if (argsLength === 5) {
-    outTransformer = args[1];
-    inTransformer = args[2];
-    options = args[3];
-    type = args[4];
-  } else {
-    console.log(args);
-    throw Error('Trying to connect pipe with invalid arguments.');
-  }
-
-  return {
-    ...options, // Options should be used to add new properties not override
-    pipe,
-    type,
-    outTransformer,
-    inTransformer,
-  }
-}
-
 export function replicatePipes(pipes) {
   return _.reduce(pipes, (pipesCopy, pipe, name) => {
     pipesCopy[name] = replicatePipe(pipe);
@@ -219,13 +196,16 @@ export function replicatePipes(pipes) {
 }
 
 export function replicatePipe(pipe) {
-  if (_.isArray(pipe)) {
-    return pipe.map(replicatePipe)
-  } else if (isPipeline(pipe)) {
+  if (isPipeline(pipe)) {
     return pipe.replicate();
+  } else if (isPipeDescriptor(pipe)) {
+    return pipe.replicate();
+  } else if (_.isFunction(pipe)) {
+    return pipe;
+  } else if (_.isNull(pipe)) {
+    return pipe;
   }
-  // TODO - handle unwanted cases
-  return pipe;
+  throw Error('Trying to replicate an invalid pipe: ', pipe);
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;

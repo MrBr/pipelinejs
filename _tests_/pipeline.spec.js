@@ -172,17 +172,14 @@ describe('Pipeline', () => {
     });
   });
   describe('chain', () => {
-    it('extend pipe with chained pipes', () => {
+    it('chained pipes execute synchronous', () => {
       const pipeline = new Pipeline()
         .supply((stream) => ({ ...stream, x: 2}))
-          .chain((stream) => ({ ...stream, y: 2 }))
-          .chain((stream) => ({ ...stream, z: 2 }))
-        .sink((stream) => {
-          const { x, y, z } = stream;
-          return { sum: x + y + z, ...stream };
-        });
+          .chain((stream) => ({ ...stream, x: stream.x + 2 }))
+            .chain((stream) => ({ ...stream, x: stream.x + 2 }))
+        .sink((stream) => ({ ...stream , third: stream.x / 3}));
 
-      const expectedStream = { x: 2, y: 2, z: 2, sum: 6 };
+      const expectedStream = { x: 6, third: 2 };
       return expect(pipeline.pipe({})).to.eventually.deep.equal(expectedStream);
     });
   });
