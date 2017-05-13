@@ -2,7 +2,6 @@ import _ from 'lodash';
 import PipeDescriptor, { isPipeDescriptor } from './PipeDescriptor';
 import pipe from './pipe';
 import parallel from './parallel';
-import serial from './serial';
 
 export default class Pipeline {
   /**
@@ -95,6 +94,19 @@ export default class Pipeline {
     const index = _.indexOf(pipes, pipeDescriptor);
 
     pipes[index] = newPipeDescriptor;
+  }
+
+  /**
+   *
+   * @param enhancer {function}
+   * @returns {Pipeline}
+   */
+  enhance(enhancer) {
+    const { last: lastPipe } = this;
+    const pipe = enhancer(lastPipe.pipe);
+    const enhancedPipe = lastPipe.replicate({ pipe });
+    this.replace(lastPipe, enhancedPipe);
+    return this;
   }
 
   /**
