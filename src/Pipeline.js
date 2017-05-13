@@ -49,7 +49,7 @@ export default class Pipeline {
    * @returns {*}
    */
   input(...args) {
-    return this.connect(...args, 'input');
+    return this.connect('input', ...args);
   }
 
   /**
@@ -58,7 +58,7 @@ export default class Pipeline {
    * @returns {*}
    */
   main(...args) {
-    return this.connect(...args, 'main');
+    return this.connect('main', ...args);
   }
 
   /**
@@ -67,11 +67,11 @@ export default class Pipeline {
    * @returns {*}
    */
   output(...args) {
-    return this.connect(...args, 'output');
+    return this.connect('output', ...args);
   }
 
   catch(...args) {
-    return this.connect(...args, 'catch');
+    return this.connect('catch', ...args);
   }
 
   getInputPipes() {
@@ -124,7 +124,7 @@ export default class Pipeline {
     const pipeline =  new Pipeline(this).connect(...pipeDescriptor.args({ type: 'main' }));
 
     // TODO - Add tests
-    const newPipeDescriptor = new PipeDescriptor().create(pipeline, pipeDescriptor.type);
+    const newPipeDescriptor = new PipeDescriptor().create(pipeDescriptor.type, pipeline);
     this.replace(pipeDescriptor, newPipeDescriptor);
     // TODO - optimization - add to the last.meta "replicated" flag so that it is safe to mutate it.
     // Is "replicated" flag secure enough that it can be mutate? What are the cases new copy is needed?

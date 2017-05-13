@@ -1,13 +1,16 @@
 import _ from 'lodash';
 
+const defaultMeta = { connected: true };
+
 export default class PipeDescriptor {
   constructor() {
     // Interface
-    this.pipe;
-    this.outTransformer;
-    this.inTransformer;
-    this.meta;
     this.type;
+    this.pipe;
+    this.inTransformer;
+    this.outTransformer;
+    this.errTransformer;
+    this.meta;
   }
 
   setup(settings) {
@@ -15,45 +18,30 @@ export default class PipeDescriptor {
     return this;
   }
 
-  create(...args) {
-    const pipe = args[0];
-    let type;
-    let outTransformer;
-    let inTransformer;
-    let meta = { connected: true }; // Additional info
-
-    const argsLength = args.length;
-    if (argsLength === 2) {
-      type = args[1];
-    } else if (argsLength === 3) {
-      outTransformer = args[1];
-      type = args[2];
-    } else if (argsLength === 4) {
-      outTransformer = args[1];
-      inTransformer = args[2];
-      type = args[3];
-    } else if (argsLength === 5) {
-      outTransformer = args[1];
-      inTransformer = args[2];
-      meta = args[3];
-      type = args[4];
-    } else {
-      console.log(args);
-      throw Error('Trying to connect pipe with invalid arguments.');
-    }
+  create(type, pipe, inTransformer, outTransformer, errTransformer, extra = {}) {
+    const meta = { ...extra, ...defaultMeta}; // Additional info
 
     return this.setup({
-      pipe,
-      outTransformer,
-      inTransformer,
-      meta,
       type,
+      pipe,
+      inTransformer,
+      outTransformer,
+      errTransformer,
+      meta,
     });
   }
 
   args(newSetup = {}) {
-    const { pipe, outTransformer, inTransformer, meta, type } = _.merge({}, this, newSetup);
-    return [pipe, outTransformer, inTransformer, meta, type];
+    const {
+      type,
+      pipe,
+      inTransformer,
+      outTransformer,
+      errTransformer,
+      meta,
+    } = _.merge({}, this, newSetup);
+
+    return [type, pipe, inTransformer, outTransformer, errTransformer, meta];
   }
 
   replicate(customization = {}) {
