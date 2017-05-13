@@ -17,20 +17,30 @@ function getPipe(pipeline) { // TODO - better name
   return getPipe(pipeline.pipe);
 }
 
-function transformOutStream(newStream, stream, pipeDescriptor) {
-  const { outTransformer } = pipeDescriptor;
-  return outTransformer ? outTransformer(newStream, stream) : newStream;
-}
-
+// TODO - use enhancers for the stream transformation?
+// Using enhancers for transformation makes pipeline writing more complex
+// but "pipe" is getting simpler.
+// Transformers are for now special case and they exists for every stream type.
+// Transformers should be used as AdHoc solution for reusing pipes more easily.
 function transformInStream(stream, pipeDescriptor) {
   const { inTransformer } = pipeDescriptor;
   return inTransformer ? inTransformer(stream) : stream;
 }
 
+function transformOutStream(newStream, stream, pipeDescriptor) {
+  const { outTransformer } = pipeDescriptor;
+  return outTransformer ? outTransformer(newStream, stream) : newStream;
+}
+
+function transformErrStream(errStream, stream, pipeDescriptor) {
+  const { errTransformer } = pipeDescriptor;
+  return errTransformer ? errTransformer(errStream, stream) : errStream;
+}
+
 /**
  * Premise.
  * Instead passing next as argument, close is passed. Reason behind it is optimistic approach.
- * More frequent case should be continuing flow, not closing, for that reason,
+ * More frequent case should be continuing the flow, not closing, for that reason
  * simpler should be to continue then to stop.
  */
 
@@ -47,7 +57,7 @@ export default (stream, currentPipeDescriptor) => {
     const closePipe = closedStream => {
       // Helps handle both async and sync flows.
       closed = true;
-      reject(closedStream);
+      reject(transformErrStream(closedStream, stream, currentPipeDescriptor));
     };
 
     const newStream = currentPipe(inStream, closePipe);
