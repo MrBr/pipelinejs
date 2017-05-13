@@ -193,8 +193,7 @@ export default class Pipeline {
   pipe(stream = {}) {
     const promise = new Promise((resolve, reject) => {
       const catchPipeline = errorStream => {
-        // TODO - closing can not be stopped (closed again), improve this to prevent that case?
-        // TODO - is closing only important for serial pipes?
+        // Closing catch error will end catch cycle
         parallel(errorStream, this.pipes.catch).then(reject).catch(reject);
       };
 
