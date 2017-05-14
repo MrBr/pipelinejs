@@ -1,4 +1,4 @@
-import pipe from './pipe';
+import pipe from '../pipe';
 
 export const transformIn =
   transformer =>
@@ -20,3 +20,8 @@ export const transformError =
         .main(pipeline)
         .catch(errorStream => transformer(errorStream, stream))
         .pipe(stream);
+
+export const disconnect =
+  pipeline =>
+    stream =>
+      noop(pipeline(stream, () => {}));
