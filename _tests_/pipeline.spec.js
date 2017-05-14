@@ -49,7 +49,7 @@ describe('Pipeline', () => {
         .input(inputX)
         .input(inputY)
         .main(addXY)
-          .chain(double);
+          .chain(double); // TODO - move to chain tests
 
       return expect(addXYv0.pipe({})).to.eventually.deep.equal({ x: 2, y: 4, data: 12 });
     });
@@ -172,7 +172,7 @@ describe('Pipeline', () => {
     });
   });
   describe('chain', () => {
-    it('chained pipes execute synchronous', () => {
+    it('execute pipes synchronous', () => {
       const pipeline = new Pipeline()
         .input((stream) => ({ ...stream, x: 2}))
           .chain((stream) => ({ ...stream, x: stream.x + 2 }))
@@ -181,6 +181,15 @@ describe('Pipeline', () => {
 
       const expectedStream = { x: 6, third: 2 };
       return expect(pipeline.pipe({})).to.eventually.deep.equal(expectedStream);
+    });
+    it('chains pipe with transformers', () => {
+      new Pipeline()
+        .input(() => {})
+          .chain(() => {})
+        .input(() => {})
+          .chain(() => {}, () => {})
+            .chain(() => {}, () => {}, () => {}, () => {})
+        .main(() => {})
     });
   });
 });

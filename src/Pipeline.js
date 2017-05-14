@@ -148,13 +148,14 @@ export default class Pipeline {
    * @param pipe
    * @returns {Pipeline}
    */
-  chain(pipe, last = this.take()) {
+  chain(...args) {
+    const last = isPipeDescriptor(_.tail(args)) ? args.pop() : this.take();
     const lastOutput = last.pipes.output;
     if (_.isEmpty(lastOutput)) {
-      last.output(pipe);
+      last.output(...args);
     } else {
       const tail = _.tail(lastOutput);
-      last.chain(pipe, tail);
+      last.chain(...args, tail);
     }
     return this;
   }
