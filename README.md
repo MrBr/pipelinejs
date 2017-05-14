@@ -33,6 +33,14 @@ Your application snapshot or topology is static, it always is, pipeline enables 
 
 ## Example - please refer to test to see example
 
+## Helper handles
+
+Can be function, creator, high order. // TODO - explain each one
+
+### Pipes
+### Enhancers
+### Transformers
+### Helpers // TODO - some other name
 
 ## Roadmap, concerns
 
