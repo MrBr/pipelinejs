@@ -1,3 +1,5 @@
+import { noop } from '../helpers';
+
 export const getOldStream =
   prop =>
     (newStream, oldStream) =>
