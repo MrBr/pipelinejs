@@ -15,5 +15,8 @@ export const transformOut =
 export const transformError =
   transformer =>
     pipeline =>
-      (stream, close) =>
-        pipeline(stream, errorStream => close(transformer(errorStream)));
+      stream =>
+      new Pipeline()
+        .main(pipeline)
+        .catch(errorStream => transformer(errorStream, stream))
+        .pipe(stream);
