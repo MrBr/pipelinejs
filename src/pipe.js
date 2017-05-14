@@ -88,7 +88,7 @@ export default (stream, currentPipeDescriptor) => {
       console.log('Invalid stream, must be object, undefined or promise.');
       console.log('Stream value: ', newStream);
       console.log('Pipe: ', currentPipe);
-      closePipe({ error: 'Invalid stream', stream: newStream, has: _.has(newStream, 'then') });
+      closePipe({ error: 'Invalid stream', stream: newStream, });
     }
   });
 }
