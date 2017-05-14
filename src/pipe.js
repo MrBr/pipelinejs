@@ -1,6 +1,8 @@
 import _ from 'lodash';
 import { isPipeline } from './Pipeline';
 
+function isThenable(p) { return !!p && typeof p.then === 'function'; }
+
 /**
  * Pipes in pipeline can be functions (pipes) or pipeline (multiple pipes connected).
  * When piping stream pipe is needed.
@@ -78,7 +80,7 @@ export default (stream, currentPipeDescriptor) => {
       //  Early return of `undefined` is one of them when nothing is done?
       //  However, returning same object would be more explicit.
       resolvePipe(stream);
-    } else if (newStream instanceof Promise) {
+    } else if (isThenable(newStream)) {
       newStream.then(resolvePipe).catch(closePipe);
     } else if (_.isPlainObject(newStream)) {
       resolvePipe(newStream);
@@ -86,7 +88,7 @@ export default (stream, currentPipeDescriptor) => {
       console.log('Invalid stream, must be object, undefined or promise.');
       console.log('Stream value: ', newStream);
       console.log('Pipe: ', currentPipe);
-      closePipe({ error: 'Invalid stream', stream: newStream});
+      closePipe({ error: 'Invalid stream', stream: newStream, has: _.has(newStream, 'then') });
     }
   });
 }
