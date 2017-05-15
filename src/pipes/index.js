@@ -19,3 +19,8 @@ export const log =
 export const logStream =
     stream =>
       console.log(stream);
+
+export const promise =
+  p =>
+    stream =>
+      p;

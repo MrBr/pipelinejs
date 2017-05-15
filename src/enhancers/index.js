@@ -24,4 +24,4 @@ export const transformError =
 export const disconnect =
   pipeline =>
     stream =>
-      noop(pipeline(stream, () => {}));
+      noop(pipeline({ ...stream }, () => {}));

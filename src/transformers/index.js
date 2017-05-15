@@ -12,5 +12,5 @@ export const addNewStreamToOldAs =
 
 export const addErrStreamToOldAs =
   prop =>
-    (newStream, oldStream) =>
-      noop(oldStream[prop] = newStream, oldStream);
+    (errStream, oldStream) =>
+      noop(oldStream[prop] = errStream, oldStream);
