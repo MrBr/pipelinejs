@@ -150,12 +150,13 @@ export default class Pipeline {
    */
   chain(...args) {
     const last = isPipeDescriptor(_.tail(args)) ? args.pop() : this.take();
-    const lastOutput = last.pipes.output;
-    if (_.isEmpty(lastOutput)) {
+    const lastOutputs = last.pipes.output;
+    if (_.isEmpty(lastOutputs)) {
       last.output(...args);
     } else {
-      const tail = _.tail(lastOutput);
-      last.chain(...args, tail);
+      // "take()" is needed to avoid mutating existing pipeline
+      const lastOutput = _.tail(lastOutputs).take();
+      last.chain(...args, lastOutput);
     }
     return this;
   }
