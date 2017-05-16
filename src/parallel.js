@@ -5,7 +5,7 @@ function reconcileResolvedStreams(resolvedStreams) {
   return _.assign.apply(null, resolvedStreams);
 }
 
-export default (stream, pipes) => {
+export default function parallel(stream, pipes) {
   if (_.isEmpty(pipes)) {
     return Promise.resolve(stream);
   }

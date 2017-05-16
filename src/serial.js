@@ -1,6 +1,6 @@
 import pipe from './pipe';
 
-export default (stream, pipes, index = 0) => {
+export default function serial(stream, pipes, index = 0) {
   const pipeDescriptor = pipes[index];
 
   if (!pipeDescriptor) {
