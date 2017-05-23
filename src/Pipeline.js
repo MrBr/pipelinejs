@@ -176,9 +176,16 @@ export default class Pipeline {
     const pipeline = new Pipeline();
 
     // TODO - Rethink pipes inheritance (this particular set bellow)
-    pipeline.pipes = replicatePipes(this.pipes);
+    pipeline.pipes = this.replicatePipes();
 
     return pipeline;
+  }
+
+  replicatePipes() {
+    return _.reduce(this.pipes, (pipesCopy, pipes, name) => {
+      pipesCopy[name] = replicatePipes(pipes);
+      return pipesCopy;
+    }, {});
   }
 
   compose() {
@@ -218,10 +225,7 @@ export default class Pipeline {
 }
 
 export function replicatePipes(pipes) {
-  return _.reduce(pipes, (pipesCopy, pipe, name) => {
-    pipesCopy[name] = replicatePipe(pipe);
-    return pipesCopy;
-  }, {});
+  return _.map(pipes, replicatePipe);
 }
 
 export function replicatePipe(pipe) {
