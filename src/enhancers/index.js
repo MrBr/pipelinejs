@@ -25,3 +25,14 @@ export const disconnect =
   pipeline =>
     stream =>
       noop(pipeline({ ...stream }, () => {}));
+
+/**
+ * Change given stream prop to the transformer return value.
+ * @param prop
+ * @param transformer
+ */
+export const transformProp =
+  (prop, transformer) =>
+    pipeline =>
+      stream =>
+        noop(_.set(stream, prop, transformer(stream)));
