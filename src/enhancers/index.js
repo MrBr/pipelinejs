@@ -1,4 +1,6 @@
 import pipe from '../pipe';
+import _ from 'lodash';
+import { noop } from '../helpers';
 
 export const transformIn =
   transformer =>
