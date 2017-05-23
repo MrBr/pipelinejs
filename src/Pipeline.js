@@ -238,7 +238,7 @@ export function replicatePipe(pipe) {
   } else if (_.isNull(pipe)) {
     return pipe;
   }
-  throw Error('Trying to replicate an invalid pipe: ', pipe);
+  throw Error(`Trying to replicate an invalid pipe: ${pipe}`);
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;
