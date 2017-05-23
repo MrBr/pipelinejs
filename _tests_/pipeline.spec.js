@@ -192,4 +192,37 @@ describe('Pipeline', () => {
         .main(() => {})
     });
   });
+  describe('replicate', () => {
+    it('replicates an empty pipeline', () => {
+      const pipeline = new Pipeline();
+
+      const replicatedPipeline = pipeline.replicate();
+
+      expect(replicatedPipeline instanceof Pipeline).to.be.ok;
+    });
+    it('replicates a pipeline with pipes', () => {
+      const pipeline = new Pipeline();
+      pipeline
+        .main(() => {})
+        .output(() => {});
+
+      const replicatedPipeline = pipeline.replicate();
+
+      expect(replicatedPipeline instanceof Pipeline).to.be.ok;
+      expect(replicatedPipeline.pipes.main.length === 1).to.be.ok;
+      expect(replicatedPipeline.pipes.output.length === 1).to.be.ok;
+    });
+    it('adds a pipe to the replicated pipeline', () => {
+      const pipeline = new Pipeline();
+
+      const replicatedPipeline = pipeline.replicate();
+      replicatedPipeline
+        .main(() => {})
+        .output(() => {});
+
+      expect(replicatedPipeline instanceof Pipeline).to.be.ok;
+      expect(replicatedPipeline.pipes.main.length === 1).to.be.ok;
+      expect(replicatedPipeline.pipes.output.length === 1).to.be.ok;
+    });
+  });
 });
