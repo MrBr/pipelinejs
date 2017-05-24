@@ -44,6 +44,10 @@ export default class PipeDescriptor {
    * @returns {PipeDescriptor}
    */
   create(type, pipe, inTransformerArg, outTransformerArg, errTransformerArg, extra = {}) {
+    if (!pipe) {
+      throw Error(`An invalid pipe provided to the PipeDescriptor for ${type} type.`);
+    }
+
     const meta = { ...extra, ...defaultMeta}; // Additional info
 
     const inTransformer = resolveInTransformer(inTransformerArg);
