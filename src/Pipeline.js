@@ -217,6 +217,7 @@ export default class Pipeline {
 
     // Primary added to remove unhandled promise warning.
     // Catch is handled before, this is just a helper promise.
+    // TODO - find good way to handle this
     promise.catch(() => {});
 
     return promise;
