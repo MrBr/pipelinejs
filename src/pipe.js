@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { isPipeline } from './Pipeline';
+import { isPipeDescriptor } from './PipeDescriptor';
 
 function isThenable(p) { return !!p && typeof p.then === 'function'; }
 
@@ -14,9 +15,10 @@ function getPipe(pipeline) { // TODO - better name
     return pipeline.pipe;
   } else if (_.isFunction(pipeline)) {
     return pipeline;
+  } else if (isPipeDescriptor(pipeline)) {
+    return getPipe(pipeline.pipe);
   }
-  // pipeline = pipelineDescriptor
-  return getPipe(pipeline.pipe);
+  throw Error('Trying to get a pipe from the invalid pipeline.');
 }
 
 // TODO - use enhancers for the stream transformation?
