@@ -215,10 +215,9 @@ export default class Pipeline {
         .catch(catchPipeline);
     });
 
-    // Place to catch possible real errors
     // Primary added to remove unhandled promise warning.
-    // Rejection in Pipeline does not necessary indicate error. It can just be early return.
-    promise.catch(console.log);
+    // Catch is handled before, this is just a helper promise.
+    promise.catch(() => {});
 
     return promise;
   }
