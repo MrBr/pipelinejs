@@ -86,11 +86,6 @@ export default (stream, currentPipeDescriptor) => {
       newStream.then(resolvePipe).catch(closePipe);
     } else if (_.isPlainObject(newStream)) {
       resolvePipe(newStream);
-    } else {
-      console.log('Invalid stream, must be object, undefined or promise.');
-      console.log('Stream value: ', newStream);
-      console.log('Pipe: ', currentPipe);
-      closePipe({ error: 'Invalid stream', stream: newStream, });
     }
   });
 }
