@@ -53,7 +53,10 @@ export default (stream, currentPipeDescriptor) => {
     const currentPipe = getPipe(currentPipeDescriptor);
     const inStream = transformInStream(stream, currentPipeDescriptor);
 
-    const resolvePipe = nextStream =>
+    // Returning undefined passes the same stream further into the chain.
+    // This makes functions easier to write because the stream is usually mutated,
+    // thus there is no need to explicitly pass it through.
+    const resolvePipe = (nextStream = stream) =>
       resolve(transformOutStream(nextStream, stream, currentPipeDescriptor));
 
     let closed = false;
@@ -76,15 +79,9 @@ export default (stream, currentPipeDescriptor) => {
     // TODO - invalidate close after stream is piped (either sync or async)
     //  Once stream is piped close SHOULD NOT be called!
 
-    if (_.isUndefined(newStream)) {
-      // TODO - newStream === stream?
-      //  Trying to preserve as much as possible JS practices
-      //  Early return of `undefined` is one of them when nothing is done?
-      //  However, returning same object would be more explicit.
-      resolvePipe(stream);
-    } else if (isThenable(newStream)) {
+    if (isThenable(newStream)) {
       newStream.then(resolvePipe).catch(closePipe);
-    } else if (_.isPlainObject(newStream)) {
+    } else {
       resolvePipe(newStream);
     }
   });
