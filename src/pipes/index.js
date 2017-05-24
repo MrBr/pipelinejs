@@ -36,9 +36,9 @@ export const stringifyStream =
     JSON.stringify(stream);
 
 export const invoke =
-  (method, objProp, prepareArgs = proxy) =>
+  (method, objPath, prepareArgs) =>
     stream =>
-      _.get(stream, objProp)[method](prepareArgs(stream));
+      _.get(stream, objPath)[method](prepareArgs ? prepareArgs(stream) : stream);
 
 export const newStream =
   stream =>
