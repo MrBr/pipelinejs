@@ -170,6 +170,23 @@ describe('Pipeline', () => {
         }),
       ]);
     });
+    it('propagates thrown error through pipes', () => {
+      const errorCatch = sinon.spy(() => {});
+
+      const topPipeline = new Pipeline();
+      const middlePipeline = new Pipeline();
+      const bottomPipeline = new Pipeline();
+
+      topPipeline.catch(errorCatch);
+
+      bottomPipeline.main((stream, close) => stream.test());
+      middlePipeline.main(bottomPipeline);
+      topPipeline.main(middlePipeline);
+
+      return expect(topPipeline.pipe({})).to.eventually.be.rejected.then(error => {
+        expect(errorCatch.callCount).to.be.equal(1);
+      });
+    });
   });
   describe('chain', () => {
     it('execute pipes synchronous', () => {
@@ -190,6 +207,17 @@ describe('Pipeline', () => {
           .chain(() => {}, () => {})
             .chain(() => {}, () => {}, () => {}, () => {})
         .main(() => {})
+    });
+  });
+  describe('enhance', () => {
+    it('', () => {
+      const enhancer = pipeline => stream => stream;
+      const responsePipeline = new Pipeline();
+      responsePipeline
+        .output(() => {})
+        .enhance(enhancer);
+
+      responsePipeline.pipe({});
     });
   });
   describe('replicate', () => {
