@@ -36,5 +36,5 @@ export const disconnect =
 export const transformProp =
   (prop, transformer) =>
     pipeline =>
-      stream =>
-        noop(_.set(stream, prop, transformer(stream)));
+      (stream, close) =>
+        pipeline(_.set(stream, prop, transformer(_.get(stream, prop))), close);
