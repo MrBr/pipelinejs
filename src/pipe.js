@@ -48,6 +48,9 @@ function transformErrStream(errStream, stream, pipeDescriptor) {
  * simpler should be to continue then to stop.
  */
 
+// TODO - close as third arg? Document
+//    Not needed because called pipe will get new close handle
+//    and rejected promise behave like close.
 export default (stream, currentPipeDescriptor) => {
   return new Promise((resolve, reject) => {
     const currentPipe = getPipe(currentPipeDescriptor);
