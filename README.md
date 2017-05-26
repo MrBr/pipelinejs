@@ -4,24 +4,35 @@ Write an application by writing its topology and using independent micro service
 
 ## Documentation
 
-Main thing is to understand meaning of supply, sink and drain, those `pipes` are used to construct pipeline. 
+The main thing to understand the meaning of input, main and out, those `pipes` are used to construct pipeline. 
 There is no difference in their type or interface, they are only executed in different order and with different purpose. 
 
 Pipeline structure
 
-| supply pipes => sink pipes => drain pipes |
+| input => main => output |
 
-* supply - First in order of execution, used to filter unwanted streams or to supply stream with additional data
-* sink - Second in order of execution, the core of any pipeline, used to process stream, do what ever it has to do (side effect, calculation...)
-* drain - Third and last in order of execution, used to check results of stream processing
+* input - First in order of execution, used to filter unwanted streams or to input stream with additional data
+* main - Second in order of execution, the core of any pipeline, used to process stream, do what ever it has to do (side effect, calculation...)
+* output - Third and last in order of execution, used to check results of stream processing
 
 Pipeline can have as many as you like pipes (of any kind).
 
-Pipes can be connected to the Pipeline in serial or parallel. Depending on what is returned by certain pipe it is differently connected. Returning `undefined` means it is parallel, returning new `stream` means it is in serial. Promises are supported, same logic is applied to resolved data.
+Stream may be mutated in any pipe because
 
-Adding pipe to Pipeline will create new Pipeline which can be taken shaped separately.
+1. Pipes in the same section must be independent, they shouldn't work on the same part of the stream. 
+2. Pipes may not persist a state (may not keep the stream) meaning different sections are free to mutate the stream, their order of execution allows the mutation. 
 
-## Pipeline.close
+* Pipes in same sections are executed in parallel, the state mutation is allowed because of the first rule. 
+* Sections are executed in serial, the state mutation is allowed because of the second rule.
+
+Achieving flow diversion (branch) can be done just by chaining pipes. To branch flow wrap first pipe with switch (conditional pipe).
+// TODO - implement switch helper `switch(prop1 || comparator, prop2)` -> stream.prop1 ? stream.prop2 || stream.prop1 ? getValue(stream);
+
+## Pipeline.catch
+
+Used only with serial pipes, where closedStream is kept in pipes.
+
+## Pipeline.catch
 
 Used only with serial pipes, where closedStream is kept in pipes.
 
@@ -33,32 +44,14 @@ Your application snapshot or topology is static, it always is, pipeline enables 
 
 ## Example - please refer to test to see example
 
-## Helper handles
+## Helpers
 
 Can be function, creator, high order. // TODO - explain each one
 
 ### Pipes
 ### Enhancers
 ### Transformers
-### Helpers // TODO - some other name
-
-## Roadmap, concerns
-
-There are still few things to be specified more precisely, primary determining if some implicit (conventional) things should be kept the way  they are or changed to be explicit.
-
-Naming is to be improved, depending to much on a real piping systems.
-
-Stream interface (convention). Should it always be an object or primitive values are to be accepted as well?
-
-Closing pipe can be done with promise and with close callback? Yes, but only one way should be used.
-
-Find out if more common case is that Pipelines (and pipes) are connected in serial or parallel.
-
-Wrappers hide original pipeline, making it hard to extend its functionality, that is why they need to have special status. It must be possible to get wrapped instance.
-Either they will have special interface or will be attached specially, prefer to keep them as normal functions.
-
-Stream can be anything, but it should be only one argument.
-
+### Helpers
 
 Namings:
 * Filter
