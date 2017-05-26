@@ -162,7 +162,14 @@ export default class Pipeline {
   }
 
   return() { // TODO - confirm name; parent?
-    // TODO - handle no parent
+    if (!this.parent) {
+      throw Error(
+        'Returning to the unexisting parent pipeline. ' +
+        'Use the `return` only when a pipeline has the parent. ' +
+        'Common case for using the `return` is to get back to parent ' +
+        'pipeline after a child has been taken with the `take`.'
+      );
+    }
     return this.parent;
   }
 
