@@ -1,6 +1,10 @@
 {
   "name": "PipelineJS",
   "version": "0.0.1",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "test": "mocha --require babelTestSetup './**/*.spec.js'",
     "build": "babel src -d lib"
