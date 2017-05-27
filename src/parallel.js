@@ -1,17 +1,14 @@
 import pipe from './pipe';
 import _ from 'lodash';
 
-function reconcileResolvedStreams(resolvedStreams) {
-  return _.assign.apply(null, resolvedStreams);
-}
-
-export default function parallel(stream, pipes) {
+export default function parallel(stream, pipes, reconsiler) {
   if (_.isEmpty(pipes)) {
     return Promise.resolve(stream);
   }
+
   return new Promise((resolve, reject) => {
     Promise.all(_.map(pipes, pipeDescriptor => pipe(stream, pipeDescriptor)))
-      .then(resolvedStreams => resolve(reconcileResolvedStreams(resolvedStreams)))
+      .then(resolvedStreams => resolve(reconsiler(stream, resolvedStreams)))
       .catch(reject);
   });
 }
