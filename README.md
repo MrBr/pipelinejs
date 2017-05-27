@@ -96,3 +96,7 @@ It's still pretty much work in progress and it's getting hard for me to objectiv
 * Clean up code (document)
 * Separate concept from JS implementation
 * Where can it lead to?
+
+## License
+
+MIT
