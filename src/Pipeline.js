@@ -23,19 +23,15 @@ export default class Pipeline {
   }
 
   /**
-   * Add a pipe or a pipeline to the time zone.
-   * When connecting pipe descriptor it will be connected to the initial type? // TODO - confirm
-   * @param pipe
-   * @param type
+   * Add a pipe or a pipeline to the section.
    * @returns {Pipeline}
    */
   connect(...args) {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
-    //  further more, main pipes can be sorted?
     const pipeDescriptor = new PipeDescriptor().create(...args);
 
-    const { type } = pipeDescriptor;
-    this.pipes[type].push(pipeDescriptor);
+    const { section } = pipeDescriptor;
+    this.pipes[section].push(pipeDescriptor);
 
     this.last = pipeDescriptor;
 
@@ -83,14 +79,14 @@ export default class Pipeline {
   }
 
   replace(pipeDescriptor, newPipeDescriptor) {
-    const { type } = pipeDescriptor;
-    const { type: newType } = newPipeDescriptor;
+    const { section } = pipeDescriptor;
+    const { section: newType } = newPipeDescriptor;
 
-    if (type !== newType) {
-      throw Error(`Trying to replace ${type} with ${newType}`);
+    if (section !== newType) {
+      throw Error(`Trying to replace ${section} with ${newType}`);
     }
 
-    const pipes = this.pipes[type];
+    const pipes = this.pipes[section];
     const index = _.indexOf(pipes, pipeDescriptor);
 
     pipes[index] = newPipeDescriptor;
@@ -121,10 +117,10 @@ export default class Pipeline {
       throw Error('Trying to take the last pipe in an empty Pipeline');
     }
 
-    const pipeline =  new Pipeline(this).connect(...pipeDescriptor.args({ type: 'main' }));
+    const pipeline =  new Pipeline(this).connect(...pipeDescriptor.args({ section: 'main' }));
 
     // TODO - Add tests
-    const newPipeDescriptor = new PipeDescriptor().create(pipeDescriptor.type, pipeline);
+    const newPipeDescriptor = new PipeDescriptor().create(pipeDescriptor.section, pipeline);
     this.replace(pipeDescriptor, newPipeDescriptor);
     // TODO - optimization - add to the last.meta "replicated" flag so that it is safe to mutate it.
     // Is "replicated" flag secure enough that it can be mutate? What are the cases new copy is needed?
@@ -134,7 +130,7 @@ export default class Pipeline {
     pipeline.remove = () => {
       // Removing a pipe does not effect this.pipes.last because
       // last is used only to create snapshot
-      _.remove(this.pipes[pipeDescriptor.type], newPipeDescriptor);
+      _.remove(this.pipes[pipeDescriptor.section], newPipeDescriptor);
     };
 
     return pipeline;

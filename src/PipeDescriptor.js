@@ -15,7 +15,7 @@ function resolveOutTransformer(transformer) {
 export default class PipeDescriptor {
   constructor() {
     // Interface
-    this.type;
+    this.section;
     this.pipe;
     this.inTransformer;
     this.outTransformer;
@@ -30,9 +30,9 @@ export default class PipeDescriptor {
 
   /**
    * Create Pipe descriptor.
-   * Process arguments optional values to required type.
+   * Process arguments optional values to required section.
    *
-   * @param type {string}
+   * @param section {string}
    * @param pipe {function | Pipeline}
    * @param inTransformer {string | function}
    *  A string is converted to the pick transformer, a function is left as is.
@@ -43,9 +43,9 @@ export default class PipeDescriptor {
    * @param extra {object}
    * @returns {PipeDescriptor}
    */
-  create(type, pipe, inTransformerArg, outTransformerArg, errTransformerArg, extra = {}) {
+  create(section, pipe, inTransformerArg, outTransformerArg, errTransformerArg, extra = {}) {
     if (!pipe) {
-      throw Error(`An invalid pipe provided to the PipeDescriptor for ${type} type.`);
+      throw Error(`An invalid pipe provided to the PipeDescriptor for ${section} section.`);
     }
 
     const meta = { ...extra, ...defaultMeta}; // Additional info
@@ -55,7 +55,7 @@ export default class PipeDescriptor {
     const errTransformer = resolveOutTransformer(errTransformerArg);
 
     return this.setup({
-      type,
+      section,
       pipe,
       inTransformer,
       outTransformer,
@@ -66,7 +66,7 @@ export default class PipeDescriptor {
 
   args(newSetup = {}) {
     const {
-      type,
+      section,
       pipe,
       inTransformer,
       outTransformer,
@@ -74,7 +74,7 @@ export default class PipeDescriptor {
       meta,
     } = _.merge({}, this, newSetup);
 
-    return [type, pipe, inTransformer, outTransformer, errTransformer, meta];
+    return [section, pipe, inTransformer, outTransformer, errTransformer, meta];
   }
 
   replicate(customization = {}) {
