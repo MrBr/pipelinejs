@@ -7,10 +7,6 @@ chai.use(chaiAsPromised);
 
 // TODO
 //  Separate Pipeline and Stream tests
-//  Working with immutability? Creating new stream reference on every process?
-//  Stream is required object?
-//  Bringing peace to stream "subject" property? Property that is focus of process
-//  Stream interfaces? If "subject" property name vary, interface would standardise it.
 
 function inputX(stream) {
   return {
@@ -107,10 +103,10 @@ describe('Pipeline', () => {
         return expect(inputXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
       });
   });
-  describe('close', () => {
+  describe('catch', () => {
     // TODO - rename close to return so that it makes more sense to use it, to be associated
     //  with early return, which it actually is?
-    it('calls closing pipes when closing', () => {
+    it('calls catch pipes when closing', () => {
       const closePipe1 = (stream) => ({ ...stream, close1: true });
       const closePipe2 = (stream) => ({ ...stream, close2: true });
 
@@ -200,24 +196,24 @@ describe('Pipeline', () => {
       return expect(pipeline.pipe({})).to.eventually.deep.equal(expectedStream);
     });
     it('chains pipe with transformers', () => {
-      new Pipeline()
-        .input(() => {})
-          .chain(() => {})
-        .input(() => {})
-          .chain(() => {}, () => {})
-            .chain(() => {}, () => {}, () => {}, () => {})
-        .main(() => {})
+      const pipeline = new Pipeline()
+        .main(stream => { stream.x = stream.x * 2})
+          .chain(x => x + 1, 'x', 'x')
+
+      return expect(pipeline.pipe({ x: 5 })).to.eventually.deep.equal({ x: 11 });
     });
   });
   describe('enhance', () => {
-    it('', () => {
-      const enhancer = pipeline => stream => stream;
+    it('wraps pipe with enhancer and returns expected value', () => {
+      const enhancedStream = { val: 1 };
+      const enhancer = pipeline => stream => enhancedStream;
       const responsePipeline = new Pipeline();
       responsePipeline
         .output(() => {})
         .enhance(enhancer);
 
-      responsePipeline.pipe({});
+      // It is not the same reference because of the stream reconciliation
+      return expect(responsePipeline.pipe({})).to.eventually.deep.equal(enhancedStream);
     });
   });
   describe('replicate', () => {
