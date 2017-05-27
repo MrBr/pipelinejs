@@ -8,7 +8,7 @@
 * take()
 * return()
 
-###`pipe(stream): Promise`
+### `pipe(stream): Promise`
 
 Start the stream flow of the Pipeline.
 
@@ -17,7 +17,7 @@ Start the stream flow of the Pipeline.
 * stream {any}
     Data passed through the pipeline.
 
-###`connect(section, pipe, inTransformer, outTransformer, errTransformer): Pipeline(this)`
+### `connect(section, pipe, inTransformer, outTransformer, errTransformer): Pipeline(this)`
 
 Low level API. Add pipe to the section. Prefer sub implementation of the connect with static section. 
 Additionally use transformers to modify stream in key points (check the block schema).
@@ -90,7 +90,7 @@ mathPipeline.main(
 mathPipeline.pipe(inputStream);
 ```
 
-###`chain(pipe, inTransformer, outTransformer, errorTransformer): Pipeline(this)`
+### `chain(pipe, inTransformer, outTransformer, errorTransformer): Pipeline(this)`
 
 Make synchronous flow by chaining pipes. Chain recursively search for the last pipe of the last pipe and adds chained pipe to the `output` section. 
 Chain always create new Pipeline from the last pipe so that original pipeline doesn't get changed.
@@ -114,7 +114,7 @@ doubleAndTriplePipeline
 doubleAndTriplePipeline.pipe({ x: 5 });
 ```
 
-###`enhance(enhancer): Pipeline(this)`
+### `enhance(enhancer): Pipeline(this)`
 
 Extending a pipe can be done by wrapping it. Wrapping a pipe on connect is a legit operation.
 
@@ -140,13 +140,13 @@ export const disconnect =
       noop(pipe({ ...stream }, pipeline));
 ```
 
-###`replicate(): Pipeline`
+### `replicate(): Pipeline`
 
 Crate deep copy of the pipeline.
 
 Never mutate existing pipeline because you can't be sure where and how is it used.
  
-###`take(): Pipeline(create new Pipeline from the last pipe)`
+### `take(): Pipeline(create new Pipeline from the last pipe)`
 
 Often added pipe is just a start of a bigger process. To start working on the last pipe use `take`. It creates new pipeline by placing the last pipe into new pipeline main section.
 
@@ -159,7 +159,7 @@ Of course, in case pipeline can be reused, it makes sense to create new one.
 Example
 // TODO
 
-###`return(): Pipeline(parent Pipeline)`
+### `return(): Pipeline(parent Pipeline)`
 
 Use `return` to get the "pointer" back to the parent pipeline after the `take`.
 

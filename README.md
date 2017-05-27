@@ -1,26 +1,30 @@
 # Pipeline
 
+Functional and in a way reactive programming used to process data!
+
+For API visit [docs](./docs).
+
 ## The idea
 
 Application "architect" should be the only one to combine (couple) services (functions) into meaningful system (the application).
 
-Functions shouldn't know about each other. Consider functions (pipes), like tools you use to build a product. In real life tools don't depend mutually by default. Worker use or combine tools as needed, and that is the main goal of the Pipeline.
+Services shouldn't know about each other. Consider services (pipes), like tools you use to build an application.
 
-Pipeline gives you the mechanism to combine functions and create flows which all together create an application. 
+Pipeline gives you the mechanism to combine services and create flows which all together create an application.
 
 ## Basic concepts
 
--- intro sentence;
+Pipes are used to build pipelines. Pipes are placed in pipeline sections. The section represents order of execution.
 
-Pipes are used to build pipelines. Pipes are placed in sections. The section represents order of execution.
+![Pipeline block schme](./docs/assets/pipeline_schema.png)
 
 Pipeline has 3 core sections: input => main => output
 
-* input - First in order of execution, used to filter unwanted streams or to supply stream with additional data
-* main - Second in order of execution, the core of any pipeline, used to process stream, do what ever it has to do (side effect, calculation...)
-* output - Third and last in order of execution, used to check results of stream processing
+* **input** - First in order of execution, used to filter unwanted streams or to supply stream with additional data
+* **main** - Second in order of execution, the core of any pipeline, used to process stream, do what ever it has to do (side effect, calculation...)
+* **output** - Third and last in order of execution, used to check results of stream processing
 
-Additional catch section is used to process closing (error) stream. Catch pipes output will be actual error stream. Consider catch as a special case section.
+Additional **catch** section is used to process closing (error) stream. Catch pipes output will be actual error stream. Consider catch as a special case section.
 
 A section can have multiple pipes but must be mutually independent. Independent pipes doesn't modify the same stream property!
 
@@ -34,6 +38,7 @@ Work on the stream by mutating it. Stream may be mutated because:
 * Pipes in the same section must be independent, they shouldn't modify on the same stream property.
 * Pipes may not persist the stream (are stateless) meaning different sections are independent.
 
+Async and sync functions are standardised, functions may return value or promise. Flow will always respect pipe execution rules. 
 Passing the stream down the flow:
 
 * Returning the `undefined` will pass the current stream. 
@@ -42,13 +47,14 @@ Passing the stream down the flow:
 
 Pseudo example
 ```javascript
-// Update user route
+// Service example
 const updateUserService =
   new Pipeline()
 
     // Input section
     // All pipes are executed in parallel
-    // If any pipe closes (throws) other sections are skipped but catch.
+    // If any pipe closes (throws) other core sections are skipped
+    // Error stream is passed to catch pipes
     .input(userExists)
     .input(validateUserData)
     .input(getUser)
@@ -73,15 +79,20 @@ updateUserService
 
 ```
 
-## Roadmap
+## Why Pipeline
 
-**Long term**
+Creating web services didn't feel quite right for my taste. I simply wanted to use functions to describe a service without need to jump around the code. 
+
+There wasn't such a framework which standardised the data flow and allowed me to use functions alone to build one in a simple way. It was hard to describe flow, a lot of effort was needed to take care of async and sync execution and data passed between.
+
+It's still pretty much work in progress and it's getting hard for me to objectively look at the idea so I really appreciate feedback. 
+
+## Roadmap
 
 * Get feedback
 * Tests, tests, tests :scream;
-
-**Short term**
-
 * Add missing examples
 * Document advanced concepts
 * Clean up code (document)
+* Separate concept from JS implementation
+* Where can it lead to?

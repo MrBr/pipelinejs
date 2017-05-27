@@ -1,4 +1,4 @@
-##`pipe(stream, pipe): Promise`
+## `pipe(stream, pipe): Promise`
 
 (Adapter) Implements piping logic. Defines the pipe interface.
 Use `pipe` to properly pipe a stream through a pipe or a Pipeline.
