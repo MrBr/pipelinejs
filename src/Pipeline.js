@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import PipeDescriptor, { isPipeDescriptor } from './PipeDescriptor';
 import pipe from './pipe';
-import parallel from './parallel';
+import { parallel } from './helpers';
 
 export default class Pipeline {
   /**
