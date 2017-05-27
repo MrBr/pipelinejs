@@ -4,6 +4,10 @@ Functional and in a way reactive programming used to process data!
 
 For API visit [docs](./docs).
 
+## Installation
+
+`npm install --save pipeline-npm`
+
 ## The idea
 
 Application "architect" should be the only one to combine (couple) services (functions) into meaningful system (the application).
