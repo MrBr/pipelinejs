@@ -64,7 +64,12 @@ export default (stream, currentPipeDescriptor) => {
 
     let closed = false;
     // Close flow so that newStream doesn't go further.
-    const closePipe = closedStream => {
+    // TODO - add tests for
+    //    new object on by default
+    //    closing stream sync
+    //    closing stream async
+    //    errTransformer
+    const closePipe = (closedStream = {})=> {
       // Helps handle both async and sync flows.
       closed = true;
       reject(transformErrStream(closedStream, stream, currentPipeDescriptor));
