@@ -1,6 +1,6 @@
 {
-  "name": "PipelineJS",
-  "version": "0.0.1",
+  "name": "pipeline-npm",
+  "version": "0.1.0",
   "main": "lib/index.js",
   "files": [
     "lib"
