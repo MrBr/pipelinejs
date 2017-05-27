@@ -3,3 +3,7 @@ export const pick =
     stream =>
       stream[prop];
 
+export const noArgs =
+  stream =>
+    undefined;
+
