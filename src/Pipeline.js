@@ -200,6 +200,10 @@ export default class Pipeline {
     return [input, ...this.getInputPipes(), main, ...this.getOutputPipes(), output];
   }
 
+  reconcileStreams(stream, resolvedStreams) {
+    return _.isObject(stream) ? _.assign({}, ...resolvedStreams) : _.last(resolvedStreams);
+  }
+
   /**
    * Pipeline is serial if it has parent and whenever it is connected to another pipeline.
    * It can explicitly be disconnected (connected in parallel) for certain fitting (connection).
@@ -210,13 +214,15 @@ export default class Pipeline {
     const promise = new Promise((resolve, reject) => {
       const catchPipeline = errorStream => {
         // Closing catch error will end catch cycle
-        parallel(errorStream, this.pipes.catch).then(reject).catch(reject);
+        parallel(errorStream, this.pipes.catch, this.reconcileStreams)
+          .then(reject)
+          .catch(reject);
       };
 
       const sections = this.compose();
 
       _.reduce(sections, (nextPromise, section) => {
-        return nextPromise.then((stream) => parallel(stream, section));
+        return nextPromise.then((stream) => parallel(stream, section, this.reconcileStreams));
       }, Promise.resolve(stream))
         .then(resolve)
         .catch(catchPipeline);
