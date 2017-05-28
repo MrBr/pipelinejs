@@ -68,7 +68,6 @@ const double = (x) => x * 2;
 
 // Random math pipeline
 const mathPipeline = new Pipeline();
-mathPipeline = new Pipeline();
 mathPipeline.output(stream => console.log(stream.result));
 
 // Stream that is going to be piped through `mathPipeline`
