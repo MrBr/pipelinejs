@@ -104,8 +104,6 @@ describe('Pipeline', () => {
       });
   });
   describe('catch', () => {
-    // TODO - rename close to return so that it makes more sense to use it, to be associated
-    //  with early return, which it actually is?
     it('calls catch pipes when closing', () => {
       const closePipe1 = (stream) => ({ ...stream, close1: true });
       const closePipe2 = (stream) => ({ ...stream, close2: true });
