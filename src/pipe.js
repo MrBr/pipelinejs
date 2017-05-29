@@ -53,7 +53,7 @@ function transformErrStream(errStream, stream, pipeDescriptor) {
 //    and rejected promise behave like close.
 export default (stream, currentPipeDescriptor) => {
   return new Promise((resolve, reject) => {
-    const currentPipe = getPipe(currentPipeDescriptor);
+    const pipe = getPipe(currentPipeDescriptor);
     const inStream = transformInStream(stream, currentPipeDescriptor);
 
     // Returning undefined passes the same stream further into the chain.
@@ -75,7 +75,7 @@ export default (stream, currentPipeDescriptor) => {
       reject(transformErrStream(closedStream, stream, currentPipeDescriptor));
     };
 
-    const newStream = currentPipe(inStream, closePipe);
+    const newStream = pipe(inStream, closePipe);
 
     if (closed) {
       // Closed with closePipe function (It means close flow already started).
