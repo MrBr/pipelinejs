@@ -1,4 +1,4 @@
-import pipe from '../pipe';
+import pipe from './pipe';
 import _ from 'lodash';
 
 export const noop = (expression, returnValue) => returnValue;

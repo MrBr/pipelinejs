@@ -1,4 +1,5 @@
-import { noop } from '../helpers';
+import { noop } from './helpers';
+import pipe from './pipe';
 import _ from 'lodash';
 
 export const copy =
@@ -48,3 +49,12 @@ export const append =
   (prop, value) =>
     stream =>
       _.set(stream, prop, value);
+
+/**
+ * @param pipe
+ * @returns {Function}
+ */
+export const inverse =
+  pipeline =>
+    stream =>
+      new Promise((resolve, reject) => pipe(stream, pipeline).then(reject).catch(resolve));
