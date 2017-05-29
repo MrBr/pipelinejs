@@ -8,7 +8,6 @@ export default class Pipeline {
    * @param parent {Pipeline}
    */
   constructor(parent = null) {
-    // TODO - handle unexpected main and parent
     this.pipes = {
       input: [],
       main: [],
@@ -106,11 +105,11 @@ export default class Pipeline {
   }
 
   /**
-   * Either return new pipeline reference or create new from pipe.
+   * Return new pipeline from the last pipe/pipeline.
    * @returns {*}
    */
   take() {
-    // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
+    // TODO - disallow take().take() - throw error
     const pipeDescriptor = this.last;
 
     if (!pipeDescriptor) {
@@ -128,8 +127,6 @@ export default class Pipeline {
 
     // TODO - rethink disconnect/remove binding
     pipeline.remove = () => {
-      // Removing a pipe does not effect this.pipes.last because
-      // last is used only to create snapshot
       _.remove(this.pipes[pipeDescriptor.section], newPipeDescriptor);
     };
 
@@ -178,7 +175,7 @@ export default class Pipeline {
   replicate() {
     const pipeline = new Pipeline();
 
-    // TODO - Rethink pipes inheritance (this particular set bellow)
+    // TODO - Rethink pipes inheritance (this particular set)
     pipeline.pipes = this.replicatePipes();
 
     return pipeline;
@@ -251,15 +248,3 @@ export function replicatePipe(pipe) {
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;
-
-/**
- * Inverse always call pipe as serial.
- * It doesn't have sense to use inverse in case something is connected in parallel.
- * Parallel pipes doesn't affect original stream.
- * @param pipe
- * @returns {Function}
- */
-export const inverse = nextPipe => stream =>
-  new Promise((resolve, reject) => {
-    pipe(stream, nextPipe).then(reject).catch(resolve)
-  });
