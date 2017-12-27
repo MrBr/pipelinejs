@@ -1,84 +1,44 @@
 import _ from 'lodash';
-import { pick } from './transformers/in';
-import { append } from './transformers/out';
 
-const defaultMeta = { connected: true };
-
-function resolveInTransformer(transformer) {
-  return _.isString(transformer) ? pick(transformer) : transformer;
+function isValidTransformer(transformer) {
+  return _.isUndefined(transformer) || _.isFunction(transformer);
 }
-
-function resolveOutTransformer(transformer) {
-  return _.isString(transformer) ? append(transformer) : transformer;
-}
-
 export default class PipeDescriptor {
-  constructor() {
-    // Interface
-    this.section;
-    this.pipe;
-    this.inTransformer;
-    this.outTransformer;
-    this.errTransformer;
-    this.meta;
-  }
-
-  setup(settings) {
-    _.merge(this, settings);
-    return this;
-  }
-
   /**
-   * Create Pipe descriptor.
-   * Process arguments optional values to required section.
-   *
    * @param section {string}
-   * @param pipe {function | Pipeline}
-   * @param inTransformer {string | function}
-   *  A string is converted to the pick transformer, a function is left as is.
-   * @param outTransformerArg {string | function(result, stream)}
-   *  A string is converted to the append transformer, a function is left as is.
-   * @param errTransformerArg {string | function}
-   *  Same as the outTransformer.
-   * @param extra {object}
+   * @param pipe {function(stream, close) | Pipeline}
+   * @param inTransformer {function(stream)}
+   * @param outTransformer {function(result, stream)}
+   * @param errTransformer {function(error, stream)}
+   * @param meta {object}
    * @returns {PipeDescriptor}
    */
-  create(section, pipe, inTransformerArg, outTransformerArg, errTransformerArg, extra = {}) {
+  constructor(section, pipe, inTransformer, outTransformer, errTransformer, meta = {}) {
     if (!pipe) {
       throw Error(`An invalid pipe provided to the PipeDescriptor for ${section} section.`);
     }
 
-    const meta = { ...extra, ...defaultMeta}; // Additional info
+    if (!isValidTransformer(inTransformer) || !isValidTransformer(outTransformer) || !isValidTransformer(errTransformer)) {
+      throw Error(`An invalid pipe provided to the PipeDescriptor for ${section} section.`);
+    }
 
-    const inTransformer = resolveInTransformer(inTransformerArg);
-    const outTransformer = resolveOutTransformer(outTransformerArg);
-    const errTransformer = resolveOutTransformer(errTransformerArg);
-
-    return this.setup({
-      section,
-      pipe,
-      inTransformer,
-      outTransformer,
-      errTransformer,
-      meta,
-    });
+    this.arguments = arguments;
+    // Interface
+    this.section = section;
+    this.pipe = pipe;
+    this.inTransformer = inTransformer;
+    this.outTransformer = outTransformer;
+    this.errTransformer = errTransformer;
+    this.meta = meta;
   }
 
-  args(newSetup = {}) {
-    const {
-      section,
-      pipe,
-      inTransformer,
-      outTransformer,
-      errTransformer,
-      meta,
-    } = _.merge({}, this, newSetup);
-
-    return [section, pipe, inTransformer, outTransformer, errTransformer, meta];
+  setup(settings) {
+    _.assign(this, settings);
+    return this;
   }
 
   replicate(customization = {}) {
-    return new PipeDescriptor().setup(this).setup(customization);
+    return new PipeDescriptor(...this.arguments).setup(customization);
   }
 }
 
