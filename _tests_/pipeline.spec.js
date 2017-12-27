@@ -2,6 +2,7 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import { Pipeline, inverse, pipeClosedStreamToDrain, parallel } from '../src';
+import { pick } from '../src/in-transformers';
 
 chai.use(chaiAsPromised);
 
@@ -196,7 +197,7 @@ describe('Pipeline', () => {
     it('chains pipe with transformers', () => {
       const pipeline = new Pipeline()
         .main(stream => { stream.x = stream.x * 2})
-          .chain(x => x + 1, 'x', 'x')
+          .chain(x => x + 1, pick('x'), x => ({x}))
 
       return expect(pipeline.pipe({ x: 5 })).to.eventually.deep.equal({ x: 11 });
     });
