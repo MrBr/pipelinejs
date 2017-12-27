@@ -89,7 +89,7 @@ Creating web services didn't feel quite right for my taste. I simply wanted to u
 
 There wasn't such a framework which standardised the data flow and allowed me to use functions alone to build one in a simple way. It was hard to describe flow, a lot of effort was needed to take care of async and sync execution and data passed between.
 
-It's still pretty much work in progress and it's getting hard for me to objectively look at the idea so I really appreciate feedback. 
+It's still pretty much work in progress and it's getting hard for me to objectively look at the idea so I'd really appreciate feedback. 
 
 ## Roadmap
 
@@ -99,6 +99,7 @@ It's still pretty much work in progress and it's getting hard for me to objectiv
 * Document advanced concepts
 * Clean up code (document)
 * Separate concept from JS implementation
+* Move tools into separate modules
 * Where can it lead to?
 
 ## License

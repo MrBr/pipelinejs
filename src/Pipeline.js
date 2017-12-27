@@ -1,14 +1,14 @@
 import _ from 'lodash';
 import PipeDescriptor, { isPipeDescriptor } from './PipeDescriptor';
-import pipe from './pipe';
 import { parallel } from './helpers';
+
+const defaultMeta = { connected: true };
 
 export default class Pipeline {
   /**
    * @param parent {Pipeline}
    */
   constructor(parent = null) {
-    // TODO - handle unexpected main and parent
     this.pipes = {
       input: [],
       main: [],
@@ -26,9 +26,8 @@ export default class Pipeline {
    * Add a pipe or a pipeline to the section.
    * @returns {Pipeline}
    */
-  connect(...args) {
+  connect(pipeDescriptor) {
     // TODO - optimization - Adding a pipe can automatically create new array of ordered pipes
-    const pipeDescriptor = new PipeDescriptor().create(...args);
 
     const { section } = pipeDescriptor;
     this.pipes[section].push(pipeDescriptor);
@@ -39,13 +38,32 @@ export default class Pipeline {
   }
 
   /**
+   * @link PipeDescriptor
+   */
+  compose(section, pipe, inTransformer, outTransformer, errTransformer, meta) {
+    return new PipeDescriptor(
+      section,
+      pipe,
+      inTransformer,
+      outTransformer,
+      errTransformer,
+      meta
+    );
+  }
+
+  composeAndConnect(...args) {
+    const pipeDescriptor = this.compose(...args);
+    return this.connect(pipeDescriptor);
+  }
+
+  /**
    * Before the main pipes, used to filter out unwanted streams
    * or supply stream with data.
    * @param pipe
    * @returns {*}
    */
   input(...args) {
-    return this.connect('input', ...args);
+    return this.composeAndConnect('input', ...args);
   }
 
   /**
@@ -54,7 +72,7 @@ export default class Pipeline {
    * @returns {*}
    */
   main(...args) {
-    return this.connect('main', ...args);
+    return this.composeAndConnect('main', ...args);
   }
 
   /**
@@ -63,11 +81,11 @@ export default class Pipeline {
    * @returns {*}
    */
   output(...args) {
-    return this.connect('output', ...args);
+    return this.composeAndConnect('output', ...args);
   }
 
   catch(...args) {
-    return this.connect('catch', ...args);
+    return this.composeAndConnect('catch', ...args);
   }
 
   getInputPipes() {
@@ -106,21 +124,21 @@ export default class Pipeline {
   }
 
   /**
-   * Either return new pipeline reference or create new from pipe.
+   * Return new pipeline from the last added pipe/pipeline.
    * @returns {*}
    */
   take() {
-    // TODO - is it clear that "take" returns only last pipeline which doesn't have previous pipelines?
+    // TODO - disallow take().take() - throw error
     const pipeDescriptor = this.last;
 
     if (!pipeDescriptor) {
       throw Error('Trying to take the last pipe in an empty Pipeline');
     }
 
-    const pipeline =  new Pipeline(this).connect(...pipeDescriptor.args({ section: 'main' }));
+    const pipeline =  new Pipeline(this).connect(pipeDescriptor.replicate({ section: 'main' }));
 
     // TODO - Add tests
-    const newPipeDescriptor = new PipeDescriptor().create(pipeDescriptor.section, pipeline);
+    const newPipeDescriptor = this.compose(pipeDescriptor.section, pipeline);
     this.replace(pipeDescriptor, newPipeDescriptor);
     // TODO - optimization - add to the last.meta "replicated" flag so that it is safe to mutate it.
     // Is "replicated" flag secure enough that it can be mutate? What are the cases new copy is needed?
@@ -128,8 +146,6 @@ export default class Pipeline {
 
     // TODO - rethink disconnect/remove binding
     pipeline.remove = () => {
-      // Removing a pipe does not effect this.pipes.last because
-      // last is used only to create snapshot
       _.remove(this.pipes[pipeDescriptor.section], newPipeDescriptor);
     };
 
@@ -137,15 +153,17 @@ export default class Pipeline {
   }
 
   /**
+   * Use to achieve serial connection between multiple pipes.
    * Add a pipe to the last pipe in the chain of the last pipe -_-
-   * Recursively find the last pipe in the chain which doesn't have last pipe.
+   * Recursively find the last pipe in the chain which doesn't have last pipe (any output pipe).
+   * TODO - handle case when there is more output pipes; provide selector? default is last in output
    * Because pipes in the same sector may not depended on each other we can relay to chain
    * related pipes to the output.
    * @param pipe
    * @returns {Pipeline}
    */
   chain(...args) {
-    const last = isPipeDescriptor(_.tail(args)) ? args.pop() : this.take();
+    const last = isPipeDescriptor(_.last(args)) ? args.pop() : this.take();
     const lastOutputs = last.pipes.output;
     if (_.isEmpty(lastOutputs)) {
       last.output(...args);
@@ -178,7 +196,7 @@ export default class Pipeline {
   replicate() {
     const pipeline = new Pipeline();
 
-    // TODO - Rethink pipes inheritance (this particular set bellow)
+    // TODO - Rethink pipes inheritance (this particular set)
     pipeline.pipes = this.replicatePipes();
 
     return pipeline;
@@ -191,13 +209,25 @@ export default class Pipeline {
     }, {});
   }
 
-  compose() {
+  serialize() {
     const { input, main, output } = this.pipes;
     return [input, ...this.getInputPipes(), main, ...this.getOutputPipes(), output];
   }
 
   reconcileStreams(stream, resolvedStreams) {
-    return _.isObject(stream) ? _.assign({}, ...resolvedStreams) : _.last(resolvedStreams);
+    if (!_.isObject(stream)) {
+      throw Error('Input stream must be an object!');
+    }
+
+    const invalidStream = _.find(
+        resolvedStreams,
+        resolvedStream => !_.isPlainObject(resolvedStream)
+    );
+    if (invalidStream) {
+        throw Error(`Output stream must be an object or undefined! Invalid stream value: ${JSON.stringify(invalidStream)}`);
+    }
+
+    return _.assign({}, ...resolvedStreams);
   }
 
   /**
@@ -215,7 +245,7 @@ export default class Pipeline {
           .catch(reject);
       };
 
-      const sections = this.compose();
+      const sections = this.serialize();
 
       _.reduce(sections, (nextPromise, section) => {
         return nextPromise.then((stream) => parallel(stream, section, this.reconcileStreams));
@@ -251,15 +281,3 @@ export function replicatePipe(pipe) {
 }
 
 export const isPipeline = ref => ref instanceof Pipeline;
-
-/**
- * Inverse always call pipe as serial.
- * It doesn't have sense to use inverse in case something is connected in parallel.
- * Parallel pipes doesn't affect original stream.
- * @param pipe
- * @returns {Function}
- */
-export const inverse = nextPipe => stream =>
-  new Promise((resolve, reject) => {
-    pipe(stream, nextPipe).then(reject).catch(resolve)
-  });

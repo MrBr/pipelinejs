@@ -1,6 +1,6 @@
-import pipe from '../pipe';
+import pipe from './pipe';
 import _ from 'lodash';
-import { noop } from '../helpers';
+import { noop } from './helpers';
 
 export const transformIn =
   transformer =>
@@ -18,10 +18,10 @@ export const transformError =
   transformer =>
     pipeline =>
       stream =>
-      new Pipeline()
-        .main(pipeline)
-        .catch(errorStream => transformer(errorStream, stream))
-        .pipe(stream);
+        new Pipeline()
+          .main(pipeline)
+          .catch(errorStream => transformer(errorStream, stream))
+          .pipe(stream);
 
 export const disconnect =
   pipeline =>

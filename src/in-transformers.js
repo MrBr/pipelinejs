@@ -6,4 +6,3 @@ export const pick =
 export const noArgs =
   stream =>
     undefined;
-
