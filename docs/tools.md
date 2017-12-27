@@ -22,21 +22,21 @@ Reusable tools are either creators or High Order tools.
 
 Pipe creators and HOP (High order pipes).
 
-Import (find all) at [`pipeline/pipes`](../src/pipes).
+Find at [`pipes.js`](../src/pipes.js).
 
 ### <a id='enhancers'></a> Enhancers
 
 Enhancer creators and HOE (High order enhancers).
 
-Import (find all) at [`pipeline/enhancers`](../src/enhancers).
+Find at [`enhancers.js`](../src/enhancers.js).
 
 ### <a id='transformers'></a> Transformers
 
 Transformer creators and HOT (High order transformers), they are grouped by the type.
 
-Input transformers can be imported from [`pipeline/transformers/in`](../src/transformers/in). Used as `inTransformer` for the pipe.
+Input transformers [`in-transformers.js`](../src/transformers/in). Used as `inTransformer` for the pipe.
 
-Output transformers can be imported from [`pipeline/transformers/out`](../src/transformers/out). Used as `outTransformer` and `errTransformer`.
+Output transformers [`out-transformers.js`](../src/transformers/out). Used as `outTransformer` and `errTransformer`.
 
 Difference exists because of different signature.
 
@@ -44,4 +44,4 @@ Difference exists because of different signature.
 
 Tools used to write the pipeline way more easily.
 
-Import (find all) at [`pipeline/helpers`](../src/helpers).
+Find at [`helpers.js`](../src/helpers).
