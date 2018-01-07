@@ -29,7 +29,7 @@ export default class PipeDescriptor {
     this.inTransformer = inTransformer;
     this.outTransformer = outTransformer;
     this.errTransformer = errTransformer;
-    this.meta = meta;
+    this.meta = {...meta};
   }
 
   setup(settings) {
