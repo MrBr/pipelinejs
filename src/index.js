@@ -21,6 +21,9 @@ export {
   noArgs,
 } from './in-transformers';
 
+export {
+  append as appendIn,
+} from './out-transformers';
 
 export {
   noop,
