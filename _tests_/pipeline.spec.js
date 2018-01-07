@@ -43,12 +43,23 @@ describe('Pipeline', () => {
       // TODO - needs more asserts to confirm that it works? what tests damn it -_-
       const addXYv0 = new Pipeline();
       addXYv0
-        .input(inputX)
-        .input(inputY)
+        .main(inputX)
+        .main(inputY)
         .main(addXY)
           .chain(double); // TODO - move to chain tests
 
       return expect(addXYv0.pipe({})).to.eventually.deep.equal({ x: 2, y: 4, data: 12 });
+    });
+    it('completes with promise in the pipeline', () => {
+      // TODO - needs more asserts to confirm that it works? what tests damn it -_-
+      const promisePipe = new Pipeline();
+      promisePipe
+        .main(() => {
+            return new Promise((resolve) => {
+                setTimeout(() => resolve({completed: true}), 1500)
+            });
+        });
+      return expect(promisePipe.pipe({})).to.eventually.deep.equal({ completed: true });
     });
     describe('lifecycle', () => {
       it('async pipe rejects only once', () => {
@@ -56,7 +67,7 @@ describe('Pipeline', () => {
         const output = sinon.spy(() => {});
 
         const inputPipeline = new Pipeline();
-        inputPipeline.input(function () {
+        inputPipeline.main(function () {
           return new Promise(function (resolve, reject) {
             // throw new Error({});
             reject({ error: 'Or is it?' });
@@ -65,8 +76,8 @@ describe('Pipeline', () => {
 
         const pipeline = new Pipeline();
         pipeline
-          .input(inverse(inputPipeline))
-          .output(output);
+          .main(inverse(inputPipeline))
+          .main(output);
 
         return pipeline
           .pipe()
@@ -75,7 +86,7 @@ describe('Pipeline', () => {
       it('async pipe resolves only once', () => {
         const output = sinon.spy(() => {});
         const inputPipeline = new Pipeline();
-        inputPipeline.input(function () {
+        inputPipeline.main(function () {
           return new Promise(function (resolve, reject) {
             resolve({});
           });
@@ -83,8 +94,8 @@ describe('Pipeline', () => {
 
         const pipeline = new Pipeline();
         pipeline
-          .input(inputPipeline)
-          .output(output);
+          .main(inputPipeline)
+          .main(output);
 
         return pipeline
           .pipe()
@@ -96,10 +107,10 @@ describe('Pipeline', () => {
       it('provides proper Pipeline', () => {
         const addXYv0 = new Pipeline().main(addXY);
         const inputXPipeline = addXYv0
-          .input(inputX)
+          .main(inputX)
           .take();
 
-        expect(addXYv0.pipes.input[0].pipe).to.be.deep.equal(inputXPipeline);
+        expect(addXYv0.pipes.main[1].pipe).to.be.deep.equal(inputXPipeline);
 
         return expect(inputXPipeline.pipe()).to.eventually.deep.equal({ x: 2 });
       });
@@ -111,20 +122,20 @@ describe('Pipeline', () => {
 
       const pipeline = new Pipeline();
       pipeline
-        .input((stream, close) => close())
+        .main((stream, close) => close())
         .catch(closePipe1)
         .catch(closePipe2);
 
-      const closedPipeline = new Pipeline().input(inverse(pipeline));
+      const closedPipeline = new Pipeline().main(inverse(pipeline));
 
-      const expectedStream = { close1: true, close2: true };
+      const expectedStream = [{ close1: true}, {close2: true }];
       return expect(closedPipeline.pipe({})).to.eventually.be.deep.equal(expectedStream);
     });
     it('closes serial pipe properly', () => {
       const addXYv0 = new Pipeline();
       addXYv0
-        .input(inputX)
-        .input((stream, close) => close('error'))
+        .main(inputX)
+        .main((stream, close) => close('error'))
         .main(addXY)
         .main(double);
 
@@ -134,13 +145,13 @@ describe('Pipeline', () => {
       const errorMessage1 = 'error1';
       const errorMessage2 = 'error2';
       const pipeSetX2 = new Pipeline()
-        .input((stream, close) => {
+        .main((stream, close) => {
           !stream.setX && close(errorMessage1);
           return;
         })
         .main(() => ({ x: 2 }));
       const pipeSetY3 = new Pipeline()
-        .input((stream, close) => {
+        .main((stream, close) => {
           !stream.setY && close(errorMessage2);
           return;
         })
@@ -186,7 +197,7 @@ describe('Pipeline', () => {
   describe('chain', () => {
     it('execute pipes synchronous', () => {
       const pipeline = new Pipeline()
-        .input((stream) => ({ ...stream, x: 2}))
+        .main((stream) => ({ ...stream, x: 2}))
           .chain((stream) => ({ ...stream, x: stream.x + 2 }))
             .chain((stream) => ({ ...stream, x: stream.x + 2 }))
         .main((stream) => ({ ...stream , third: stream.x / 3}));
@@ -208,7 +219,7 @@ describe('Pipeline', () => {
       const enhancer = pipeline => stream => enhancedStream;
       const responsePipeline = new Pipeline();
       responsePipeline
-        .output(() => {})
+        .main(() => {})
         .enhance(enhancer);
 
       // It is not the same reference because of the stream reconciliation
@@ -227,25 +238,25 @@ describe('Pipeline', () => {
       const pipeline = new Pipeline();
       pipeline
         .main(() => {})
-        .output(() => {});
+        .main(() => {});
 
       const replicatedPipeline = pipeline.replicate();
 
       expect(replicatedPipeline instanceof Pipeline).to.be.ok;
-      expect(replicatedPipeline.pipes.main.length === 1).to.be.ok;
-      expect(replicatedPipeline.pipes.output.length === 1).to.be.ok;
+      expect(replicatedPipeline.pipes.main.length === 2).to.be.ok;
     });
     it('adds a pipe to the replicated pipeline', () => {
-      const pipeline = new Pipeline();
+      const pipeline = new Pipeline()
+        .main(() => {});
 
       const replicatedPipeline = pipeline.replicate();
       replicatedPipeline
         .main(() => {})
-        .output(() => {});
+        .main(() => {});
 
       expect(replicatedPipeline instanceof Pipeline).to.be.ok;
-      expect(replicatedPipeline.pipes.main.length === 1).to.be.ok;
-      expect(replicatedPipeline.pipes.output.length === 1).to.be.ok;
+      expect(replicatedPipeline.pipes.main.length === 3).to.be.ok;
+      expect(pipeline.pipes.main.length === 1).to.be.ok;
     });
   });
 });
